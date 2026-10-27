@@ -1,9 +1,9 @@
 body {
     margin: 0;
     padding: 0;
-    background: #14141f;
+    background: #e2e8f0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    color: #fff;
+    color: #1e293b;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -14,14 +14,14 @@ body {
 #game-wrapper {
     width: 480px;
     height: 720px;
-    background: #1c1c2e;
-    border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border-radius: 20px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.8);
     display: flex;
     flex-direction: column;
     overflow: hidden;
     position: relative;
-    border: 2px solid #2d2d44;
+    border: 2px solid #cbd5e1;
 }
 
 .screen {
@@ -41,14 +41,15 @@ body {
 
 #start-screen h1 {
     font-size: 1.4rem;
-    color: #ff7eb3;
+    color: #db2777;
     margin-bottom: 5px;
     text-align: center;
+    text-shadow: 0 0 10px rgba(219,39,119,0.2);
 }
 
 #start-screen p {
     font-size: 0.85rem;
-    color: #a3a3c2;
+    color: #475569;
     margin-bottom: 20px;
     text-align: center;
 }
@@ -56,25 +57,26 @@ body {
 .selection-container {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
+    gap: 10px;
     width: 100%;
-    margin-bottom: 20px;
+    margin-bottom: 25px;
 }
 
 .plane-card {
-    background: #25253d;
-    border: 2px solid #3b3b5c;
-    border-radius: 10px;
-    padding: 8px;
+    background: rgba(255, 255, 255, 0.8);
+    border: 2px solid #cbd5e1;
+    border-radius: 12px;
+    padding: 10px;
     text-align: center;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .plane-card:hover, .plane-card.selected {
-    border-color: #ff7eb3;
-    background: #323254;
-    transform: translateY(-2px);
+    border-color: #db2777;
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 5px 15px rgba(219,39,119,0.2);
+    transform: translateY(-3px);
 }
 
 .plane-card:nth-child(5) {
@@ -82,31 +84,33 @@ body {
 }
 
 .plane-icon {
-    font-size: 1.8rem;
-    margin-bottom: 2px;
+    font-size: 2rem;
+    margin-bottom: 4px;
 }
 
 .plane-card h3 {
     margin: 3px 0;
     font-size: 0.95rem;
+    color: #0f172a;
 }
 
 .plane-card p {
     margin: 0;
     font-size: 0.7rem;
-    color: #8f8fb3;
+    color: #64748b;
 }
 
 #start-btn, #restart-btn, #bomb-btn {
-    background: linear-gradient(135deg, #ff758c, #ff7eb3);
+    background: linear-gradient(135deg, #f43f5e, #db2777);
     border: none;
     color: white;
-    padding: 12px 30px;
+    padding: 14px 35px;
     font-size: 1rem;
     font-weight: bold;
-    border-radius: 25px;
+    border-radius: 30px;
     cursor: pointer;
-    box-shadow: 0 4px 15px rgba(255, 117, 140, 0.4);
+    box-shadow: 0 6px 20px rgba(219, 39, 119, 0.4);
+    transition: transform 0.1s;
 }
 
 #start-btn:active, #restart-btn:active, #bomb-btn:active {
@@ -117,44 +121,80 @@ body {
     width: 100%;
     display: flex;
     justify-content: space-between;
-    padding: 10px 15px;
-    background: #181829;
+    padding: 12px 18px;
+    background: rgba(255, 255, 255, 0.9);
     font-size: 0.8rem;
     font-weight: bold;
     box-sizing: border-box;
-    border-bottom: 2px solid #2d2d44;
+    border-bottom: 2px solid #cbd5e1;
+    color: #334155;
+    backdrop-filter: blur(5px);
+}
+
+#canvas-container {
+    position: relative;
+    width: 480px;
+    height: 580px;
 }
 
 #gameCanvas {
-    background: #0d0d14;
+    background: linear-gradient(180deg, #e0f2fe 0%, #bae6fd 100%); /* 밝고 화사한 하늘 배경 */
     display: block;
     cursor: crosshair;
 }
 
+#stage-banner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.95);
+    border: 2px solid #db2777;
+    padding: 25px 40px;
+    border-radius: 16px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2), 0 0 20px rgba(219,39,119,0.3);
+    z-index: 10;
+}
+
+#banner-title {
+    margin: 0 0 8px 0;
+    color: #db2777;
+    font-size: 1.6rem;
+}
+
+#banner-desc {
+    margin: 0;
+    color: #475569;
+    font-size: 0.9rem;
+}
+
 #controls-panel {
     width: 100%;
-    padding: 10px;
-    background: #181829;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.9);
     display: flex;
     justify-content: center;
-    border-top: 2px solid #2d2d44;
+    border-top: 2px solid #cbd5e1;
     box-sizing: border-box;
 }
 
 #bomb-btn {
     width: 100%;
-    padding: 10px;
-    font-size: 0.9rem;
-    background: linear-gradient(135deg, #cc3333, #ff5858);
+    padding: 11px;
+    font-size: 0.95rem;
+    background: linear-gradient(135deg, #e11d48, #be123c);
+    box-shadow: 0 4px 15px rgba(225, 29, 72, 0.4);
 }
 
 #gameover-screen h2 {
-    color: #ff5858;
     font-size: 2.2rem;
     margin-bottom: 10px;
+    color: #e11d48;
 }
 
 #gameover-screen p {
     font-size: 1.1rem;
-    margin-bottom: 20px;
+    margin-bottom: 25px;
+    color: #334155;
 }

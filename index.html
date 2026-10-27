@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cute Star Fighters: 1984 Edition</title>
+    <title>Cute Star Fighters: Nightmare 100 Stages</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -11,7 +11,7 @@
         <!-- 시작 화면 -->
         <div id="start-screen" class="screen">
             <h1>🐰 CUTE STAR FIGHTERS 🐥</h1>
-            <p>날아다니는 괴물들을 피해 날아오르는 아기자기한 모험!</p>
+            <p>밝은 하늘 아래, 기괴한 괴물들과 맞서는 100스테이지 대모험!</p>
             <div class="selection-container">
                 <div class="plane-card selected" data-plane="bunny">
                     <div class="plane-icon">🐰</div>
@@ -45,15 +45,22 @@
         <!-- 게임 플레이 화면 -->
         <div id="game-screen" class="screen hidden">
             <div id="hud">
-                <div>스테이지 <span id="stage">1</span></div>
+                <div>STAGE <span id="stage">1</span>/100</div>
                 <div>점수: <span id="score">0</span></div>
                 <div>목숨: <span id="lives">3</span> ❤️</div>
                 <div>폭탄: <span id="bombs">1</span> 💣</div>
                 <div>파워: Lv.<span id="power">1</span> 🎁</div>
             </div>
-            <canvas id="gameCanvas" width="480" height="580"></canvas>
+            <div id="canvas-container">
+                <canvas id="gameCanvas" width="480" height="580"></canvas>
+                <!-- 스테이지 전환 안내 팝업 -->
+                <div id="stage-banner" class="hidden">
+                    <h2 id="banner-title">STAGE 1 CLEAR</h2>
+                    <p id="banner-desc">다음 스테이지로 진입합니다...</p>
+                </div>
+            </div>
             <div id="controls-panel">
-                <button id="bomb-btn">💣 필살기 폭탄 발사!</button>
+                <button id="bomb-btn">💣 강력한 폭탄 발사!</button>
             </div>
         </div>
 

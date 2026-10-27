@@ -14,6 +14,10 @@ const powerEl = document.getElementById('power');
 const finalScoreEl = document.getElementById('final-score');
 const gameOverTitle = document.getElementById('gameover-title');
 
+const stageBanner = document.getElementById('stage-banner');
+const bannerTitle = document.getElementById('banner-title');
+const bannerDesc = document.getElementById('banner-desc');
+
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
@@ -27,7 +31,6 @@ planeCards.forEach(card => {
     });
 });
 
-// 웹 오디오 신디사이저 (효과음)
 let audioCtx = null;
 function initAudio() {
     if (!audioCtx) {
@@ -38,9 +41,7 @@ function initAudio() {
 function playSound(type) {
     if (!audioCtx) return;
     try {
-        if (audioCtx.state === 'suspended') {
-            audioCtx.resume();
-        }
+        if (audioCtx.state === 'suspended') audioCtx.resume();
         let osc = audioCtx.createOscillator();
         let gain = audioCtx.createGain();
         osc.connect(gain);
@@ -48,36 +49,39 @@ function playSound(type) {
 
         if (type === 'shoot') {
             osc.type = 'square';
-            osc.frequency.setValueAtTime(500, audioCtx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.08);
+            osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.08);
             gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.08);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.08);
         } else if (type === 'hit') {
             osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.1);
-            gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.1);
+            osc.frequency.setValueAtTime(120, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.12);
+            gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.12);
         } else if (type === 'item') {
             osc.type = 'sine';
-            osc.frequency.setValueAtTime(400, audioCtx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.15);
-            gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(500, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(1000, audioCtx.currentTime + 0.15);
+            gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.15);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.15);
         } else if (type === 'bomb') {
             osc.type = 'triangle';
-            osc.frequency.setValueAtTime(100, audioCtx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(20, audioCtx.currentTime + 0.4);
-            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.4);
+            osc.frequency.setValueAtTime(80, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(10, audioCtx.currentTime + 0.5);
+            gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.5);
+        } else if (type === 'stageUp') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.35);
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.35);
         }
     } catch(e) {}
 }
@@ -86,16 +90,17 @@ let gameInterval;
 let score = 0;
 let lives = 3;
 let bombs = 1;
-let power = 1;
+let power = 1; // 최대 5레벨까지 강화 가능!
 let currentStage = 1;
 let stageScore = 0;
-const SCORE_PER_STAGE = 1000;
+const SCORE_PER_STAGE = 800; // 스테이지 당 점수 요건
+let isPausedForBanner = false;
 
 let player = {
     x: canvas.width / 2,
     y: canvas.height - 60,
     size: 30,
-    speed: 5,
+    speed: 6,
     icon: '🐰',
     shield: false
 };
@@ -103,16 +108,18 @@ let player = {
 let bullets = [];
 let enemies = [];
 let items = [];
-let stars = [];
+let clouds = [];
 let boss = null;
 let bombEffectTimer = 0;
 
-for(let i=0; i<40; i++) {
-    stars.push({
+// 밝은 배경을 위한 구름 생성
+for(let i=0; i<15; i++) {
+    clouds.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
-        size: Math.random() * 2 + 1,
-        speed: Math.random() * 2 + 0.5
+        size: Math.random() * 40 + 20,
+        speed: Math.random() * 0.8 + 0.3,
+        opacity: Math.random() * 0.3 + 0.1
     });
 }
 
@@ -125,6 +132,7 @@ window.addEventListener('keydown', e => keys[e.code] = true);
 window.addEventListener('keyup', e => keys[e.code] = false);
 
 canvas.addEventListener('mousemove', e => {
+    if (isPausedForBanner) return;
     const rect = canvas.getBoundingClientRect();
     mouseX = e.clientX - rect.left;
     mouseY = e.clientY - rect.top;
@@ -132,6 +140,7 @@ canvas.addEventListener('mousemove', e => {
 });
 
 canvas.addEventListener('touchmove', e => {
+    if (isPausedForBanner) return;
     const rect = canvas.getBoundingClientRect();
     mouseX = e.touches[0].clientX - rect.left;
     mouseY = e.touches[0].clientY - rect.top;
@@ -155,10 +164,11 @@ function startGame() {
     startScreen.classList.add('hidden');
     gameOverScreen.classList.add('hidden');
     gameScreen.classList.remove('hidden');
+    stageBanner.classList.add('hidden');
 
     score = 0;
     lives = 3;
-    bombs = 1;
+    bombs = 2;
     power = 1;
     currentStage = 1;
     stageScore = 0;
@@ -167,6 +177,7 @@ function startGame() {
     items = [];
     boss = null;
     bombEffectTimer = 0;
+    isPausedForBanner = false;
 
     player.icon = getPlaneIcon(selectedPlaneType);
     player.x = canvas.width / 2;
@@ -186,54 +197,70 @@ function updateHUD() {
     powerEl.textContent = power;
 }
 
-// 미사일 발사
+// 강화된 파워에 따른 미사일 발사 (최대 Lv.5)
 let shootTimer = 0;
 function handleShooting() {
     shootTimer++;
-    if (shootTimer % 12 === 0) {
+    if (shootTimer % 10 === 0) {
         playSound('shoot');
+        let p = power;
         if (selectedPlaneType === 'bunny') {
-            bullets.push({x: player.x, y: player.y - 20, vy: -10, size: 6, color: '#ff7eb3'});
-            if (power >= 2) {
-                bullets.push({x: player.x - 12, y: player.y - 10, vy: -10, size: 5, color: '#ff7eb3'});
-                bullets.push({x: player.x + 12, y: player.y - 10, vy: -10, size: 5, color: '#ff7eb3'});
-            }
+            bullets.push({x: player.x, y: player.y - 20, vy: -12, size: 6, color: '#f43f5e'});
+            if (p >= 2) { bullets.push({x: player.x - 12, y: player.y - 10, vy: -12, size: 5, color: '#f43f5e'}); bullets.push({x: player.x + 12, y: player.y - 10, vy: -12, size: 5, color: '#f43f5e'}); }
+            if (p >= 3) { bullets.push({x: player.x - 24, y: player.y, vy: -11, size: 5, color: '#f43f5e'}); bullets.push({x: player.x + 24, y: player.y, vy: -11, size: 5, color: '#f43f5e'}); }
+            if (p >= 4) { bullets.push({x: player.x - 6, y: player.y - 15, vy: -13, size: 7, color: '#fb7185'}); bullets.push({x: player.x + 6, y: player.y - 15, vy: -13, size: 7, color: '#fb7185'}); }
+            if (p >= 5) { bullets.push({x: player.x - 32, y: player.y + 5, vy: -10, size: 6, color: '#fff'}); bullets.push({x: player.x + 32, y: player.y + 5, vy: -10, size: 6, color: '#fff'}); }
         } else if (selectedPlaneType === 'duck') {
-            bullets.push({x: player.x - 8, y: player.y - 15, vy: -9, vx: -1, size: 6, color: '#ffd166'});
-            bullets.push({x: player.x + 8, y: player.y - 15, vy: -9, vx: 1, size: 6, color: '#ffd166'});
-            if (power >= 2) {
-                bullets.push({x: player.x - 20, y: player.y - 5, vy: -9, vx: -2, size: 5, color: '#ffd166'});
-                bullets.push({x: player.x + 20, y: player.y - 5, vy: -9, vx: 2, size: 5, color: '#ffd166'});
-            }
+            bullets.push({x: player.x - 8, y: player.y - 15, vy: -11, vx: -1, size: 6, color: '#fbbf24'});
+            bullets.push({x: player.x + 8, y: player.y - 15, vy: -11, vx: 1, size: 6, color: '#fbbf24'});
+            if (p >= 2) { bullets.push({x: player.x - 20, y: player.y - 5, vy: -11, vx: -2, size: 5, color: '#fbbf24'}); bullets.push({x: player.x + 20, y: player.y - 5, vy: -11, vx: 2, size: 5, color: '#fbbf24'}); }
+            if (p >= 3) { bullets.push({x: player.x, y: player.y - 25, vy: -12, size: 8, color: '#f59e0b'}); }
+            if (p >= 4) { bullets.push({x: player.x - 30, y: player.y, vy: -10, vx: -3, size: 6, color: '#fef3c7'}); bullets.push({x: player.x + 30, y: player.y, vy: -10, vx: 3, size: 6, color: '#fef3c7'}); }
+            if (p >= 5) { bullets.push({x: player.x - 15, y: player.y - 20, vy: -13, vx: -0.5, size: 6, color: '#fff'}); bullets.push({x: player.x + 15, y: player.y - 20, vy: -13, vx: 0.5, size: 6, color: '#fff'}); }
         } else if (selectedPlaneType === 'cat') {
-            bullets.push({x: player.x, y: player.y - 20, vy: -10, vx: 0, size: 6, color: '#a0c4ff'});
-            bullets.push({x: player.x - 15, y: player.y - 15, vy: -9, vx: -2, size: 5, color: '#a0c4ff'});
-            bullets.push({x: player.x + 15, y: player.y - 15, vy: -9, vx: 2, size: 5, color: '#a0c4ff'});
+            bullets.push({x: player.x, y: player.y - 20, vy: -12, vx: 0, size: 6, color: '#38bdf8'});
+            bullets.push({x: player.x - 15, y: player.y - 15, vy: -11, vx: -2, size: 5, color: '#38bdf8'});
+            bullets.push({x: player.x + 15, y: player.y - 15, vy: -11, vx: 2, size: 5, color: '#38bdf8'});
+            if (p >= 3) { bullets.push({x: player.x - 28, y: player.y - 10, vy: -10, vx: -4, size: 5, color: '#0284c7'}); bullets.push({x: player.x + 28, y: player.y - 10, vy: -10, vx: 4, size: 5, color: '#0284c7'}); }
+            if (p >= 5) { bullets.push({x: player.x - 40, y: player.y, vy: -9, vx: -5, size: 6, color: '#fff'}); bullets.push({x: player.x + 40, y: player.y, vy: -9, vx: 5, size: 6, color: '#fff'}); }
         } else if (selectedPlaneType === 'bear') {
-            bullets.push({x: player.x, y: player.y - 25, vy: -8, size: power >= 2 ? 12 : 8, color: '#ffb703'});
+            bullets.push({x: player.x, y: player.y - 25, vy: -10, size: p >= 3 ? 14 : 10, color: '#ea580c'});
+            if (p >= 2) { bullets.push({x: player.x - 10, y: player.y - 15, vy: -11, size: 8, color: '#c2410c'}); bullets.push({x: player.x + 10, y: player.y - 15, vy: -11, size: 8, color: '#c2410c'}); }
+            if (p >= 4) { bullets.push({x: player.x - 20, y: player.y - 5, vy: -11, size: 9, color: '#9a3412'}); bullets.push({x: player.x + 20, y: player.y - 5, vy: -11, size: 9, color: '#9a3412'}); }
+            if (p >= 5) { bullets.push({x: player.x, y: player.y - 30, vy: -14, size: 16, color: '#fff'}); }
         } else if (selectedPlaneType === 'frog') {
-            bullets.push({x: player.x - 10, y: player.y - 15, vy: -11, size: 5, color: '#06d6a0'});
-            bullets.push({x: player.x + 10, y: player.y - 15, vy: -11, size: 5, color: '#06d6a0'});
+            bullets.push({x: player.x - 12, y: player.y - 15, vy: -12, vx: -0.5, size: 6, color: '#10b981'});
+            bullets.push({x: player.x + 12, y: player.y - 15, vy: -12, vx: 0.5, size: 6, color: '#10b981'});
+            if (p >= 2) { bullets.push({x: player.x - 25, y: player.y - 10, vy: -11, vx: -2, size: 6, color: '#059669'}); bullets.push({x: player.x + 25, y: player.y - 10, vy: -11, vx: 2, size: 6, color: '#059669'}); }
+            if (p >= 4) { bullets.push({x: player.x - 38, y: player.y - 5, vy: -10, vx: -3.5, size: 6, color: '#047857'}); bullets.push({x: player.x + 38, y: player.y - 5, vy: -10, vx: 3.5, size: 6, color: '#047857'}); }
+            if (p >= 5) { bullets.push({x: player.x, y: player.y - 25, vy: -13, size: 10, color: '#fff'}); }
         }
     }
 }
 
-// 적 생성 (날아다니는 괴물들: 박쥐, 유령, 드래곤, 외계 괴물 등)
+// 훨씬 무섭고 기괴한 적 생성 및 복잡한 패턴 부여 (웨이브, 지그재그, 급강하)
 let spawnTimer = 0;
 function handleEnemies() {
     if (boss) return;
 
     spawnTimer++;
-    let spawnRate = Math.max(20, 45 - (currentStage * 5));
+    let spawnRate = Math.max(12, 38 - (currentStage * 0.3));
     if (spawnTimer % spawnRate === 0) {
-        const flyingMonsters = ['🦇', '👻', '🐉', '👾', '🦅'];
+        // 기괴하고 무서운 괴물 이모지들
+        const scaryMonsters = ['🕷️', '🧟', '💀', '🧠', '👁️', '🩸', '☠️', '🪱', '🦇', '👹'];
+        const patterns = ['straight', 'wave', 'zigzag', 'dive'];
+        let chosenPattern = patterns[Math.floor(Math.random() * patterns.length)];
+
         enemies.push({
-            x: Math.random() * (canvas.width - 40) + 20,
+            x: Math.random() * (canvas.width - 60) + 30,
             y: -30,
-            size: 26,
-            speed: (Math.random() * 1.5 + 1.5) + (currentStage * 0.3),
-            hp: power >= 2 ? 2 : 1,
-            icon: flyingMonsters[Math.floor(Math.random() * flyingMonsters.length)]
+            startX: Math.random() * (canvas.width - 60) + 30,
+            size: 28,
+            speed: (Math.random() * 1.8 + 1.8) + (currentStage * 0.05),
+            hp: 1 + Math.floor(currentStage / 20),
+            icon: scaryMonsters[Math.floor(Math.random() * scaryMonsters.length)],
+            pattern: chosenPattern,
+            angle: Math.random() * Math.PI * 2
         });
     }
 
@@ -242,61 +269,75 @@ function handleEnemies() {
     }
 }
 
-// 보스 소환
+// 보스 소환 (매 스테이지마다 더 무서운 대형 보스)
 function spawnBoss() {
     enemies = [];
-    const bossIcons = ['👿', '🐉', '💀'];
-    const bossNames = ['가고일 군주', '네더 드래곤', '다크 수호자'];
+    const bossIcons = ['👹', '🧛‍♂️', '🐙', '☠️', '👽', '💀', '👿', '🐉'];
+    const bossNames = ['기괴한 사령관', '네크로맨서', '심해의 공포', '악몽의 지배자', '혼돈의 거대 괴수', '지옥의 파괴자', '최강의 악마왕', '궁극의 공포 군주'];
     
-    let stageIdx = Math.min(currentStage - 1, bossIcons.length - 1);
+    let stageIdx = (currentStage - 1) % bossIcons.length;
     boss = {
         x: canvas.width / 2,
-        y: -50,
-        targetY: 90,
-        size: 55,
-        hp: 20 + (currentStage * 10),
-        maxHp: 20 + (currentStage * 10),
+        y: -60,
+        targetY: 100,
+        size: 65,
+        hp: 30 + (currentStage * 15),
+        maxHp: 30 + (currentStage * 15),
         icon: bossIcons[stageIdx],
-        name: bossNames[stageIdx],
-        vx: 1.5
+        name: bossNames[Math.floor((currentStage - 1) / bossIcons.length) % bossNames.length],
+        vx: 2 + (currentStage * 0.05)
     };
 }
 
 // 폭탄 발사
 function triggerBomb() {
-    if (bombs > 0) {
+    if (bombs > 0 && !isPausedForBanner) {
         bombs--;
         playSound('bomb');
         enemies = [];
         if (boss) {
-            boss.hp -= 15;
+            boss.hp -= 40 + (currentStage * 2);
             if (boss.hp <= 0) {
                 defeatBoss();
             }
         }
-        score += 300;
+        score += 500;
         updateHUD();
-        bombEffectTimer = 35;
+        bombEffectTimer = 40;
     }
 }
 bombBtn.addEventListener('click', triggerBomb);
 
 function defeatBoss() {
-    score += 1000;
+    score += 1500;
     boss = null;
     stageScore = 0;
     currentStage++;
-    if (currentStage > 3) {
+
+    if (currentStage > 100) {
         gameClear();
         return;
     }
-    updateHUD();
+
+    playSound('stageUp');
+    isPausedForBanner = true;
+    bannerTitle.textContent = `STAGE ${currentStage - 1} CLEAR!`;
+    bannerDesc.textContent = `다음은 STAGE ${currentStage} (100스테이지 도전 중)`;
+    stageBanner.classList.remove('hidden');
+
+    setTimeout(() => {
+        stageBanner.classList.add('hidden');
+        isPausedForBanner = false;
+        updateHUD();
+    }, 2200);
 }
 
 function updateGame() {
+    if (isPausedForBanner) return;
+
     if (isMouseDown) {
-        player.x += (mouseX - player.x) * 0.15;
-        player.y += (mouseY - player.y) * 0.15;
+        player.x += (mouseX - player.x) * 0.18;
+        player.y += (mouseY - player.y) * 0.18;
     }
     if (keys['ArrowLeft'] || keys['KeyA']) player.x -= player.speed;
     if (keys['ArrowRight'] || keys['KeyD']) player.x += player.speed;
@@ -309,12 +350,16 @@ function updateGame() {
     handleShooting();
     handleEnemies();
 
+    // 밝은 배경 및 구름 렌더링
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#ffffff';
-    stars.forEach(star => {
-        star.y += star.speed;
-        if (star.y > canvas.height) star.y = 0;
-        ctx.fillRect(star.x, star.y, star.size, star.size);
+    
+    clouds.forEach(cloud => {
+        cloud.y += cloud.speed;
+        if (cloud.y > canvas.height + 50) cloud.y = -50;
+        ctx.fillStyle = `rgba(255, 255, 255, ${cloud.opacity})`;
+        ctx.beginPath();
+        ctx.arc(cloud.x, cloud.y, cloud.size, 0, Math.PI * 2);
+        ctx.fill();
     });
 
     // 총알
@@ -333,22 +378,22 @@ function updateGame() {
     if (boss) {
         if (boss.y < boss.targetY) boss.y += 1.5;
         boss.x += boss.vx;
-        if (boss.x < 50 || boss.x > canvas.width - 50) boss.vx *= -1;
+        if (boss.x < 60 || boss.x > canvas.width - 60) boss.vx *= -1;
 
-        ctx.font = '50px sans-serif';
+        ctx.font = '55px sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(boss.icon, boss.x, boss.y);
 
-        ctx.fillStyle = '#333';
-        ctx.fillRect(canvas.width / 2 - 100, 15, 200, 10);
-        ctx.fillStyle = '#cc3333';
-        ctx.fillRect(canvas.width / 2 - 100, 15, (boss.hp / boss.maxHp) * 200, 10);
-        ctx.fillStyle = '#fff';
-        ctx.font = '11px sans-serif';
-        ctx.fillText(`[BOSS] ${boss.name}`, canvas.width / 2, 35);
+        ctx.fillStyle = '#cbd5e1';
+        ctx.fillRect(canvas.width / 2 - 120, 15, 240, 12);
+        ctx.fillStyle = '#e11d48';
+        ctx.fillRect(canvas.width / 2 - 120, 15, Math.max(0, (boss.hp / boss.maxHp) * 240), 12);
+        ctx.fillStyle = '#1e293b';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillText(`[STAGE ${currentStage} BOSS] ${boss.name}`, canvas.width / 2, 36);
 
-        if (Math.hypot(player.x - boss.x, player.y - boss.y) < 40) {
+        if (Math.hypot(player.x - boss.x, player.y - boss.y) < 45) {
             playSound('hit');
             if (player.shield) {
                 player.shield = false;
@@ -360,7 +405,7 @@ function updateGame() {
         }
 
         bullets.forEach((b, bIndex) => {
-            if (Math.hypot(b.x - boss.x, b.y - boss.y) < 35) {
+            if (Math.hypot(b.x - boss.x, b.y - boss.y) < 40) {
                 bullets.splice(bIndex, 1);
                 boss.hp--;
                 if (boss.hp <= 0) {
@@ -370,15 +415,28 @@ function updateGame() {
         });
     }
 
-    // 일반 적 (날아다니는 괴물들)
+    // 일반 적 업데이트 및 복잡한 패턴 적용
     enemies.forEach((enemy, eIndex) => {
         enemy.y += enemy.speed;
-        ctx.font = '26px sans-serif';
+        
+        // 복잡한 이동 패턴 계산
+        if (enemy.pattern === 'wave') {
+            enemy.angle += 0.08;
+            enemy.x = enemy.startX + Math.sin(enemy.angle) * 60;
+        } else if (enemy.pattern === 'zigzag') {
+            enemy.angle += 0.05;
+            enemy.x += Math.cos(enemy.angle) * 3;
+        } else if (enemy.pattern === 'dive') {
+            if (enemy.y > 200 && enemy.x < player.x) enemy.x += 1.5;
+            if (enemy.y > 200 && enemy.x > player.x) enemy.x -= 1.5;
+        }
+
+        ctx.font = '28px sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(enemy.icon, enemy.x, enemy.y);
 
-        if (Math.hypot(player.x - enemy.x, player.y - enemy.y) < 25) {
+        if (Math.hypot(player.x - enemy.x, player.y - enemy.y) < 26) {
             playSound('hit');
             enemies.splice(eIndex, 1);
             if (player.shield) {
@@ -391,23 +449,22 @@ function updateGame() {
         }
 
         bullets.forEach((b, bIndex) => {
-            if (Math.hypot(b.x - enemy.x, b.y - enemy.y) < 22) {
+            if (Math.hypot(b.x - enemy.x, b.y - enemy.y) < 24) {
                 bullets.splice(bIndex, 1);
                 enemy.hp--;
                 if (enemy.hp <= 0) {
                     enemies.splice(eIndex, 1);
-                    score += 100;
-                    stageScore += 100;
+                    score += 150;
+                    stageScore += 150;
                     updateHUD();
 
-                    // 아이템 드랍: 색상으로 구분되는 선물상자
-                    // 초콜릿(갈색상자), 빅토리 진(파란상자), 유리문진(청록상자), 비밀 일기장(황금상자)
-                    if (Math.random() < 0.35) {
+                    // 아이템 드랍 (강화된 효과)
+                    if (Math.random() < 0.38) {
                         const itemTypes = [
-                            { type: 'choco', boxColor: '#8B4513', ribbonColor: '#ff7eb3', name: '초콜릿' },
-                            { type: 'gin', boxColor: '#1e90ff', ribbonColor: '#ffffff', name: '빅토리 진' },
-                            { type: 'paperweight', boxColor: '#00ced1', ribbonColor: '#ffffe0', name: '유리문진' },
-                            { type: 'diary', boxColor: '#ffd700', ribbonColor: '#cc3333', name: '비밀 일기장' }
+                            { type: 'choco', boxColor: '#7c2d12', ribbonColor: '#f43f5e', name: '초콜릿(파워)' },
+                            { type: 'gin', boxColor: '#0284c7', ribbonColor: '#ffffff', name: '빅토리 진(폭탄)' },
+                            { type: 'paperweight', boxColor: '#0d9488', ribbonColor: '#ccfbff', name: '유리문진(실드)' },
+                            { type: 'diary', boxColor: '#eab308', ribbonColor: '#b91c1c', name: '비밀 일기장(보너스)' }
                         ];
                         const chosen = itemTypes[Math.floor(Math.random() * itemTypes.length)];
                         items.push({ x: enemy.x, y: enemy.y, vy: 1.5, ...chosen });
@@ -416,39 +473,38 @@ function updateGame() {
             }
         });
 
-        if (enemy.y > canvas.height + 30) {
+        if (enemy.y > canvas.height + 40) {
             enemies.splice(eIndex, 1);
         }
     });
 
-    // 아이템 (선물상자 렌더링)
+    // 아이템 (선물상자)
     items.forEach((item, iIndex) => {
         item.y += item.vy;
 
-        // 캔버스로 색상별 선물상자 그리기
         ctx.fillStyle = item.boxColor;
-        ctx.fillRect(item.x - 12, item.y - 12, 24, 24);
+        ctx.fillRect(item.x - 14, item.y - 14, 28, 28);
         ctx.fillStyle = item.ribbonColor;
-        ctx.fillRect(item.x - 3, item.y - 12, 6, 24); // 세로 리본
-        ctx.fillRect(item.x - 12, item.y - 3, 24, 6);  // 가로 리본
+        ctx.fillRect(item.x - 4, item.y - 14, 8, 28);
+        ctx.fillRect(item.x - 14, item.y - 4, 28, 8);
 
-        if (Math.hypot(player.x - item.x, player.y - item.y) < 25) {
+        if (Math.hypot(player.x - item.x, player.y - item.y) < 28) {
             playSound('item');
             items.splice(iIndex, 1);
             if (item.type === 'choco') {
-                if (power < 3) power++;
+                if (power < 5) power++; // 최대 5단계로 대폭 강화!
             } else if (item.type === 'gin') {
-                bombs++;
+                bombs += 2; // 폭탄 2개 충전!
             } else if (item.type === 'paperweight') {
                 player.shield = true;
             } else if (item.type === 'diary') {
-                score += 300;
-                stageScore += 300;
+                score += 500;
+                stageScore += 500;
             }
             updateHUD();
         }
 
-        if (item.y > canvas.height + 30) {
+        if (item.y > canvas.height + 40) {
             items.splice(iIndex, 1);
         }
     });
@@ -460,17 +516,17 @@ function updateGame() {
     ctx.fillText(player.icon, player.x, player.y);
 
     if (player.shield) {
-        ctx.strokeStyle = '#00f2fe';
-        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#06b6d4';
+        ctx.lineWidth = 4;
         ctx.beginPath();
-        ctx.arc(player.x, player.y, 24, 0, Math.PI * 2);
+        ctx.arc(player.x, player.y, 26, 0, Math.PI * 2);
         ctx.stroke();
     }
 
-    // 폭탄 이펙트
+    // 강력한 폭탄 이펙트
     if (bombEffectTimer > 0) {
         bombEffectTimer--;
-        ctx.fillStyle = bombEffectTimer % 4 < 2 ? 'rgba(255, 117, 140, 0.5)' : 'rgba(255, 255, 255, 0.4)';
+        ctx.fillStyle = bombEffectTimer % 4 < 2 ? 'rgba(244, 63, 94, 0.6)' : 'rgba(255, 255, 255, 0.6)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 }
@@ -481,7 +537,7 @@ function gameOver() {
     gameScreen.classList.add('hidden');
     gameOverScreen.classList.remove('hidden');
     gameOverTitle.textContent = "GAME OVER";
-    gameOverTitle.style.color = "#ff5858";
+    gameOverTitle.style.color = "#e11d48";
     finalScoreEl.textContent = score;
 }
 
@@ -489,8 +545,8 @@ function gameClear() {
     clearInterval(gameInterval);
     gameScreen.classList.add('hidden');
     gameOverScreen.classList.remove('hidden');
-    gameOverTitle.textContent = "VICTORY! (모든 스테이지 클리어)";
-    gameOverTitle.style.color = "#06d6a0";
+    gameOverTitle.textContent = "🏆 100스테이지 대완벽 클리어! 🏆";
+    gameOverTitle.style.color = "#059669";
     finalScoreEl.textContent = score;
 }
 
