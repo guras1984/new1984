@@ -1,208 +1,61 @@
-body {
-    margin: 0;
-    padding: 0;
-    background: radial-gradient(circle at center, #1e1b4b 0%, #020617 100%);
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    color: #f8fafc;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    overflow: hidden;
-}
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap');
+:root{--bg:#05080d;--panel:#0b121b;--line:#263849;--gold:#d7b875;--cyan:#8cecff;--muted:#91a4b6;--white:#f0f5f8}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:radial-gradient(ellipse at 50% 15%,#172536 0%,#080e16 44%,#030609 100%);color:var(--white);font-family:'Noto Sans KR',sans-serif}
+body{display:flex;justify-content:center;align-items:center;overflow:auto;min-height:100dvh;padding:14px}
+#game-wrapper{width:min(520px,100%);height:min(820px,calc(100dvh - 28px));min-height:640px;background:linear-gradient(145deg,rgba(15,26,38,.98),rgba(5,10,16,.99));border:1px solid #344655;border-radius:10px;box-shadow:0 28px 90px #000b,inset 0 1px #ffffff0d;display:flex;flex-direction:column;overflow:hidden;position:relative}
+#game-wrapper:before{content:"";position:absolute;inset:7px;border:1px solid #d7b87522;pointer-events:none;z-index:3}
+.screen{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;box-sizing:border-box;padding:24px;position:relative}.hidden{display:none!important}
+#start-screen{background:linear-gradient(180deg,#0b1520eF,#070c12f7),repeating-linear-gradient(0deg,transparent 0 35px,#a9d9ff08 36px)}
+.title-glow{font-family:'Orbitron',sans-serif;font-size:clamp(1.25rem,4vw,1.7rem);letter-spacing:.11em;font-weight:800;color:#f1dca8;text-align:center;text-shadow:0 0 22px #d7b87530;margin-bottom:9px;line-height:1.45}
+#start-screen:after{content:'TACTICAL AIR COMMAND  •  EST. 1984';font:10px 'Orbitron',sans-serif;letter-spacing:.24em;color:#8296a8;position:absolute;top:24px;text-align:center}
+#start-screen>p{font-size:.8rem;color:#9bacbb;margin:0 0 20px;text-align:center;letter-spacing:.03em}
+.selection-container{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;width:100%;margin-bottom:20px}
+.plane-card{background:linear-gradient(145deg,#152332d9,#0a1119);border:1px solid #344757;border-radius:5px;padding:11px 9px;text-align:center;cursor:pointer;transition:all .2s ease;position:relative;min-height:112px;overflow:hidden}
+.plane-card:before{content:'';position:absolute;inset:0;background:linear-gradient(120deg,transparent,#d7b8750b,transparent);pointer-events:none}
+.plane-card:hover,.plane-card.selected{border-color:var(--gold);background:linear-gradient(145deg,#253444,#101a24);box-shadow:inset 0 0 0 1px #d7b87522,0 7px 20px #0005;transform:translateY(-2px)}
+.plane-card.selected:after{content:'SELECTED';position:absolute;right:6px;top:5px;font:7px 'Orbitron',sans-serif;letter-spacing:.1em;color:var(--gold)}
+.plane-card:nth-child(5){grid-column:span 2;min-height:96px}.plane-icon{font-size:1.85rem;margin-bottom:6px;filter:grayscale(.15);text-shadow:0 0 15px #8cecff33}.plane-card h3{margin:3px 0 4px;font-size:.83rem;color:#e8edf1;letter-spacing:.02em}.plane-card p{margin:0;font-size:.68rem;color:#8fa2b3}
+.glow-btn{background:linear-gradient(180deg,#e6d09b,#b89759);border:1px solid #f5e4b6;color:#111820;padding:13px 30px;font-family:'Orbitron','Noto Sans KR',sans-serif;font-size:.82rem;font-weight:800;letter-spacing:.08em;border-radius:3px;cursor:pointer;box-shadow:0 6px 22px #d7b87520;transition:all .2s}.glow-btn:hover{filter:brightness(1.12);transform:translateY(-1px);box-shadow:0 9px 28px #d7b87535}.glow-btn:active{transform:translateY(1px)}
+#game-screen{padding:0;justify-content:flex-start;background:#050a10;gap:0}#hud{width:100%;display:grid;grid-template-columns:repeat(5,1fr);gap:0;padding:12px 7px;background:linear-gradient(180deg,#101c28,#09111a);font:600 .62rem 'Orbitron','Noto Sans KR',sans-serif;letter-spacing:.02em;border-bottom:1px solid #354858;color:#c4d0d9;text-align:center;flex-shrink:0}#hud .hud-item{padding:2px 3px;border-right:1px solid #304150}#hud .hud-item:last-child{border:0}#hud span{color:var(--gold);display:inline-block;margin-left:2px}
+#canvas-container{position:relative;width:100%;flex:1;min-height:0;display:flex;justify-content:center;align-items:center;background:#04090f;overflow:hidden}#gameCanvas{width:100%;height:100%;max-width:480px;object-fit:fill;display:block;cursor:crosshair;background:linear-gradient(#071421,#050a10);touch-action:none}
+#stage-banner{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(82%,350px);background:linear-gradient(145deg,#101e2bfa,#080e15fa);border:1px solid var(--gold);padding:25px 22px;text-align:center;box-shadow:0 20px 60px #000c;z-index:10}#banner-title{margin:0 0 8px;color:var(--gold);font:700 1.2rem 'Orbitron',sans-serif;letter-spacing:.07em}#banner-desc{margin:0;color:#b7c5d0;font-size:.82rem}
+#controls-panel{width:100%;padding:11px 14px;background:#09111a;display:flex;justify-content:center;border-top:1px solid #354858;flex-shrink:0}#bomb-btn{width:100%;padding:11px;font-size:.78rem;background:linear-gradient(180deg,#8f3f3b,#5e2427);border:1px solid #bc7770;color:#fff0e9;box-shadow:0 5px 18px #0005}
+#gameover-screen{background:radial-gradient(ellipse at 50% 40%,#172534,#070c12 75%)}#gameover-screen h2{font:800 clamp(1.3rem,5vw,2rem) 'Orbitron','Noto Sans KR',sans-serif;letter-spacing:.04em;margin:0 0 14px;color:var(--gold);text-align:center}#gameover-screen p{font-size:1rem;margin-bottom:25px;color:#a9bac7}#final-score{color:#f1dca8;font-family:'Orbitron',sans-serif}
+@media(max-width:420px){body{padding:0}#game-wrapper{height:100dvh;min-height:580px;border-radius:0;width:100%;border-left:0;border-right:0}#start-screen{padding:30px 18px 20px}.plane-card{min-height:102px;padding:9px 6px}.plane-card h3{font-size:.76rem}.plane-card p{font-size:.63rem}#hud{font-size:.55rem;padding:10px 3px}}
+@media(max-height:700px){#game-wrapper{height:100dvh;min-height:0}#start-screen{padding:22px 20px 14px}#start-screen>p{margin-bottom:12px}.plane-card{min-height:88px;padding:7px}.plane-icon{font-size:1.5rem}.selection-container{gap:7px;margin-bottom:12px}.glow-btn{padding:10px 24px}}
 
-#game-wrapper {
-    width: 480px;
-    height: 720px;
-    background: rgba(15, 23, 42, 0.85);
-    backdrop-filter: blur(16px);
-    border-radius: 24px;
-    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.15);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    position: relative;
-    border: 2px solid rgba(59, 130, 246, 0.4);
-}
 
-.screen {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    box-sizing: border-box;
-    padding: 20px;
-}
+/* DELUXE PASS: refined command deck, pause state, and responsive controls */
+.subtitle-en{display:block;margin-top:8px;color:#d7b875;font:8px 'Orbitron',sans-serif;letter-spacing:.14em}
+.mission-note{width:100%;display:flex;justify-content:space-between;gap:6px;margin:0 0 15px;padding:10px 9px;border-top:1px solid #344655;border-bottom:1px solid #344655;color:#8195a6;font-size:9px}
+.mission-note span:first-child{color:var(--gold);font-family:'Orbitron',sans-serif}
+#controls-panel{gap:7px;align-items:stretch}
+.utility-btn{flex:0 0 auto;min-width:57px;padding:7px 8px;background:#111d28;border:1px solid #405363;color:#d7e1e8;border-radius:3px;font:700 11px 'Orbitron',sans-serif;cursor:pointer;transition:.18s}
+.utility-btn span{display:block;margin-top:3px;font:7px 'Orbitron',sans-serif;letter-spacing:.08em;color:#8fa2b3}
+.utility-btn:hover,.utility-btn[aria-pressed="true"]{border-color:var(--gold);color:var(--gold)}
+#bomb-btn{flex:1;min-width:0}
+#pause-overlay{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:#02070bd9;backdrop-filter:blur(5px)}
+.pause-card{width:min(84%,340px);padding:30px 22px;text-align:center;background:linear-gradient(145deg,#142331,#080e15);border:1px solid var(--gold);box-shadow:0 20px 70px #000b}
+.pause-card .eyebrow{font:9px 'Orbitron',sans-serif;letter-spacing:.2em;color:var(--gold)}
+.pause-card h2{font:700 1.2rem 'Orbitron',sans-serif;letter-spacing:.08em;margin:14px 0 8px;color:#edf4f8}
+.pause-card p{font-size:.8rem;color:#94a7b7;margin:0 0 22px}
+.record-line{font:10px 'Orbitron',sans-serif;letter-spacing:.12em;color:#8296a8!important}
+#best-score{color:var(--gold);margin-left:10px}
+#gameCanvas{image-rendering:auto}
+@media(max-width:420px){.mission-note{font-size:8px;padding:8px 5px}.utility-btn{min-width:46px;padding:6px 5px}#controls-panel{padding:9px 8px;gap:5px}#bomb-btn{font-size:.68rem;padding:10px 6px}.utility-btn span{font-size:6px}}
 
-.hidden {
-    display: none !important;
-}
+#stage-progress{height:3px;background:#1a2a37;width:100%;flex-shrink:0;overflow:hidden}
+#stage-progress-fill{display:block;height:100%;width:0;background:linear-gradient(90deg,#8cecff,#d7b875);box-shadow:0 0 10px #8cecff77;transition:width .18s}
 
-.title-glow {
-    font-size: 1.3rem;
-    font-weight: 900;
-    color: #60a5fa;
-    text-align: center;
-    text-shadow: 0 0 20px rgba(96, 165, 250, 0.6);
-    margin-bottom: 8px;
-}
 
-#start-screen p {
-    font-size: 0.82rem;
-    color: #94a3b8;
-    margin-bottom: 25px;
-    text-align: center;
-}
-
-.selection-container {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-    width: 100%;
-    margin-bottom: 25px;
-}
-
-.plane-card {
-    background: rgba(30, 41, 59, 0.7);
-    border: 2px solid rgba(71, 85, 105, 0.6);
-    border-radius: 14px;
-    padding: 10px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.25s ease;
-}
-
-.plane-card:hover, .plane-card.selected {
-    border-color: #3b82f6;
-    background: rgba(30, 58, 138, 0.5);
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
-    transform: translateY(-3px);
-}
-
-.plane-card:nth-child(5) {
-    grid-column: span 2;
-}
-
-.plane-icon {
-    font-size: 2rem;
-    margin-bottom: 4px;
-}
-
-.plane-card h3 {
-    margin: 4px 0;
-    font-size: 0.95rem;
-    color: #f1f5f9;
-}
-
-.plane-card p {
-    margin: 0;
-    font-size: 0.68rem;
-    color: #94a3b8;
-}
-
-.glow-btn {
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-    border: none;
-    color: white;
-    padding: 14px 40px;
-    font-size: 1rem;
-    font-weight: bold;
-    border-radius: 30px;
-    cursor: pointer;
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
-    transition: all 0.2s;
-}
-
-.glow-btn:hover {
-    box-shadow: 0 0 30px rgba(59, 130, 246, 0.8);
-    transform: scale(1.03);
-}
-
-.glow-btn:active {
-    transform: scale(0.97);
-}
-
-#hud {
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    padding: 12px 16px;
-    background: rgba(2, 6, 23, 0.9);
-    font-size: 0.72rem;
-    font-weight: bold;
-    box-sizing: border-box;
-    border-bottom: 2px solid rgba(59, 130, 246, 0.3);
-    color: #e2e8f0;
-}
-
-#canvas-container {
-    position: relative;
-    width: 480px;
-    height: 580px;
-}
-
-#gameCanvas {
-    background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
-    display: block;
-    cursor: crosshair;
-}
-
-#stage-banner {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(15, 23, 42, 0.95);
-    border: 2px solid #3b82f6;
-    padding: 30px 45px;
-    border-radius: 18px;
-    text-align: center;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 30px rgba(59, 130, 246, 0.5);
-    z-index: 10;
-}
-
-#banner-title {
-    margin: 0 0 8px 0;
-    color: #60a5fa;
-    font-size: 1.6rem;
-    text-shadow: 0 0 10px rgba(96, 165, 250, 0.5);
-}
-
-#banner-desc {
-    margin: 0;
-    color: #cbd5e1;
-    font-size: 0.88rem;
-}
-
-#controls-panel {
-    width: 100%;
-    padding: 12px;
-    background: rgba(2, 6, 23, 0.9);
-    display: flex;
-    justify-content: center;
-    border-top: 2px solid rgba(59, 130, 246, 0.3);
-    box-sizing: border-box;
-}
-
-#bomb-btn {
-    width: 100%;
-    padding: 12px;
-    font-size: 0.95rem;
-    background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
-    box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
-}
-
-#gameover-screen h2 {
-    font-size: 2.3rem;
-    margin-bottom: 12px;
-    color: #ef4444;
-    text-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
-}
-
-#gameover-screen p {
-    font-size: 1.15rem;
-    margin-bottom: 25px;
-    color: #94a3b8;
-}
+/* FINAL ARCADE PASS */
+#hud{grid-template-columns:repeat(6,minmax(0,1fr));}
+.hangar-tip{width:100%;margin-top:10px;text-align:center;color:#657d90;font-size:9px;letter-spacing:.025em;line-height:1.6}
+.result-stats{font-size:.75rem!important;color:#8095a5!important;letter-spacing:.05em}
+#gameCanvas{image-rendering:auto;}
+button:focus-visible,.plane-card:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+.plane-card{isolation:isolate}
+.plane-card.selected{box-shadow:inset 0 0 0 1px #d7b87544,0 0 24px #d7b87512}
+#stage-banner{backdrop-filter:blur(8px)}
+@media(max-width:420px){#hud{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:7px}#hud .hud-item:nth-child(3){border-right:0}.hangar-tip{font-size:8px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important;scroll-behavior:auto!important}}

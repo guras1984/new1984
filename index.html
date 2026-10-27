@@ -10,36 +10,39 @@
     <div id="game-wrapper">
         <!-- 시작 화면 -->
         <div id="start-screen" class="screen">
-            <div class="title-glow">✈️ 3D AIRPLANE FIGHTERS 🚀</div>
-            <p>최고급 전투기를 선택하고 100스테이지의 찬란한 하늘을 정복하세요!</p>
+            <div class="title-glow">SKY RAIDERS <span style="color:#8cecff">’84</span></div>
+            <p>1984년 아케이드의 긴장감과 현대적인 전술 비행을 하나로.
+            <span class="subtitle-en">ONE PILOT. ONE SQUADRON. 100 STAGES.</span></p>
             <div class="selection-container">
                 <div class="plane-card selected" data-plane="standard">
-                    <div class="plane-icon">✈️</div>
-                    <h3>스탠더드 공군기</h3>
-                    <p>균형 잡힌 표준형</p>
+                    <div class="plane-icon">◈</div>
+                    <h3>FALCON / 요격기</h3>
+                    <p>균형 잡힌 다목적 전투기</p>
                 </div>
                 <div class="plane-card" data-plane="jet">
-                    <div class="plane-icon">🚀</div>
-                    <h3>레드 제트</h3>
-                    <p>고속형 / 강력한 화력</p>
+                    <div class="plane-icon">➤</div>
+                    <h3>VIPER / 애프터버너</h3>
+                    <p>고속 기동 · 집중 화력</p>
                 </div>
                 <div class="plane-card" data-plane="propeller">
-                    <div class="plane-icon">🛩️</div>
-                    <h3>블루 프로펠러</h3>
-                    <p>안정적인 연사형</p>
+                    <div class="plane-icon">✥</div>
+                    <h3>WRAITH / 건십</h3>
+                    <p>안정적인 연사 지원</p>
                 </div>
                 <div class="plane-card" data-plane="cruiser">
-                    <div class="plane-icon">🛸</div>
-                    <h3>스타 크루저</h3>
-                    <p>광역 확산 공격형</p>
+                    <div class="plane-icon">◇</div>
+                    <h3>PHANTOM / 스텔스</h3>
+                    <p>광역 확산 공격 시스템</p>
                 </div>
                 <div class="plane-card" data-plane="copter">
-                    <div class="plane-icon">🚁</div>
-                    <h3>그린 헬기</h3>
-                    <p>특수 방어형</p>
+                    <div class="plane-icon">⬡</div>
+                    <h3>AEGIS / 방어기</h3>
+                    <p>실드 강화 · 생존 특화</p>
                 </div>
             </div>
-            <button id="start-btn" class="glow-btn">게임 시작하기</button>
+            <div class="mission-note"><span>MISSION 01</span><span>↑ ↓ ← → / WASD 이동</span><span>자동 발사 · P 일시정지</span></div>
+            <div class="hangar-tip">기체 선택은 전술입니다. 격추 · 회피 · 생존으로 기록을 갱신하세요.</div>
+            <button id="start-btn" class="glow-btn">출격 준비 <span aria-hidden="true">↗</span></button>
         </div>
 
         <!-- 게임 플레이 화면 -->
@@ -49,8 +52,10 @@
                 <div class="hud-item">점수: <span id="score">0</span></div>
                 <div class="hud-item">목숨: <span id="lives">3</span> ❤️</div>
                 <div class="hud-item">폭탄: <span id="bombs">2</span> 💣</div>
-                <div class="hud-item">총알수: <span id="spread">1</span>줄 🪙</div>
+                <div class="hud-item">무장 <span id="spread">1</span></div>
+                <div class="hud-item">COMBO <span id="combo">0</span></div>
             </div>
+            <div id="stage-progress" aria-label="스테이지 진행도"><span id="stage-progress-fill"></span></div>
             <div id="canvas-container">
                 <canvas id="gameCanvas" width="480" height="580"></canvas>
                 <!-- 스테이지 전환 안내 팝업 -->
@@ -60,7 +65,12 @@
                 </div>
             </div>
             <div id="controls-panel">
-                <button id="bomb-btn" class="glow-btn">💥 필살기 폭탄 발사!</button>
+                <button id="pause-btn" class="utility-btn" aria-label="일시정지">Ⅱ <span>PAUSE</span></button>
+                <button id="sound-btn" class="utility-btn" aria-label="사운드 켜기/끄기">♫ <span>SOUND</span></button>
+                <button id="bomb-btn" class="glow-btn">TACTICAL STRIKE · 폭탄 투하</button>
+            </div>
+            <div id="pause-overlay" class="hidden" role="dialog" aria-label="일시정지">
+                <div class="pause-card"><span class="eyebrow">FLIGHT SYSTEM</span><h2>MISSION PAUSED</h2><p>작전이 일시 정지되었습니다.</p><button id="resume-btn" class="glow-btn">작전 재개</button></div>
             </div>
         </div>
 
@@ -68,6 +78,8 @@
         <div id="gameover-screen" class="screen hidden">
             <h2 id="gameover-title">GAME OVER</h2>
             <p>최종 점수: <span id="final-score">0</span></p>
+            <p class="result-stats">최고 콤보 <span id="final-combo">0</span> · 격추 <span id="final-kills">0</span></p>
+            <p class="record-line">PERSONAL BEST <span id="best-score">0</span></p>
             <button id="restart-btn" class="glow-btn">다시 도전하기</button>
         </div>
     </div>

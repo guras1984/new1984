@@ -4,6 +4,15 @@ const gameOverScreen = document.getElementById('gameover-screen');
 const startBtn = document.getElementById('start-btn');
 const restartBtn = document.getElementById('restart-btn');
 const bombBtn = document.getElementById('bomb-btn');
+const pauseBtn = document.getElementById('pause-btn');
+const resumeBtn = document.getElementById('resume-btn');
+const soundBtn = document.getElementById('sound-btn');
+const pauseOverlay = document.getElementById('pause-overlay');
+const bestScoreEl = document.getElementById('best-score');
+const stageProgressFill = document.getElementById('stage-progress-fill');
+const comboEl = document.getElementById('combo');
+const finalComboEl = document.getElementById('final-combo');
+const finalKillsEl = document.getElementById('final-kills');
 const planeCards = document.querySelectorAll('.plane-card');
 
 const stageEl = document.getElementById('stage');
@@ -32,6 +41,11 @@ planeCards.forEach(card => {
 });
 
 let audioCtx = null;
+let soundMuted = false;
+let isManuallyPaused = false;
+let bestScore = 0;
+try { bestScore = Number(localStorage.getItem('skyRaiders84Best') || 0); } catch (e) { bestScore = 0; }
+if (bestScoreEl) bestScoreEl.textContent = bestScore.toLocaleString('ko-KR');
 function initAudio() {
     if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -39,7 +53,7 @@ function initAudio() {
 }
 
 function playSound(type) {
-    if (!audioCtx) return;
+    if (!audioCtx || soundMuted) return;
     try {
         if (audioCtx.state === 'suspended') audioCtx.resume();
         let osc = audioCtx.createOscillator();
@@ -91,8 +105,10 @@ let score = 0;
 let lives = 3;
 let bombs = 2;
 let bulletCount = 1;
+let power = 0;
 let currentStage = 1;
 let stageScore = 0;
+let combo = 0, bestCombo = 0, kills = 0, comboTimer = 0, hitCooldown = 0;
 const SCORE_PER_STAGE = 3000;
 let isPausedForBanner = false;
 
@@ -129,45 +145,81 @@ let mouseX = player.x;
 let mouseY = player.y;
 let isMouseDown = false;
 
-window.addEventListener('keydown', e => keys[e.code] = true);
+window.addEventListener('keydown', e => {
+    if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
+    if ((e.code === 'KeyP' || e.code === 'Escape') && !gameScreen.classList.contains('hidden')) togglePause();
+    if (e.code === 'KeyM') toggleSound();
+    keys[e.code] = true;
+}, { passive: false });
 window.addEventListener('keyup', e => keys[e.code] = false);
+window.addEventListener('blur', () => { keys = {}; if (!gameScreen.classList.contains('hidden')) setPaused(true); });
+
+function setPaused(paused) {
+    isManuallyPaused = paused;
+    pauseOverlay.classList.toggle('hidden', !paused);
+    pauseBtn.setAttribute('aria-pressed', String(paused));
+    pauseBtn.innerHTML = paused ? '▶ <span>RESUME</span>' : 'Ⅱ <span>PAUSE</span>';
+}
+function togglePause() {
+    if (isPausedForBanner || gameScreen.classList.contains('hidden')) return;
+    setPaused(!isManuallyPaused);
+}
+function toggleSound() {
+    soundMuted = !soundMuted;
+    soundBtn.setAttribute('aria-pressed', String(soundMuted));
+    soundBtn.innerHTML = soundMuted ? '× <span>MUTED</span>' : '♫ <span>SOUND</span>';
+}
 
 canvas.addEventListener('mousemove', e => {
     if (isPausedForBanner) return;
     const rect = canvas.getBoundingClientRect();
-    mouseX = e.clientX - rect.left;
-    mouseY = e.clientY - rect.top;
+    mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
+    mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
     isMouseDown = true;
 });
 
 canvas.addEventListener('touchmove', e => {
     if (isPausedForBanner) return;
     const rect = canvas.getBoundingClientRect();
-    mouseX = e.touches[0].clientX - rect.left;
-    mouseY = e.touches[0].clientY - rect.top;
+    mouseX = (e.touches[0].clientX - rect.left) * (canvas.width / rect.width);
+    mouseY = (e.touches[0].clientY - rect.top) * (canvas.height / rect.height);
     isMouseDown = true;
     e.preventDefault();
 }, { passive: false });
+canvas.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'touch') {
+        const rect = canvas.getBoundingClientRect();
+        mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
+        mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
+        isMouseDown = true;
+    }
+});
+canvas.addEventListener('pointermove', e => {
+    if (e.pointerType !== 'touch' || isPausedForBanner) return;
+    const rect = canvas.getBoundingClientRect();
+    mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
+    mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
+});
 
 function getPlaneIcon(type) {
     switch(type) {
-        case 'standard': return '✈️';
-        case 'jet': return '🚀';
-        case 'propeller': return '🛩️';
-        case 'cruiser': return '🛸';
-        case 'copter': return '🚁';
-        default: return '✈️';
+        case 'standard': return 'F';
+        case 'jet': return 'V';
+        case 'propeller': return 'W';
+        case 'cruiser': return 'P';
+        case 'copter': return 'A';
+        default: return 'F';
     }
 }
 
 function getPlaneColor(type) {
     switch(type) {
-        case 'standard': return { base: '#2563eb', high: '#93c5fd' };
-        case 'jet': return { base: '#dc2626', high: '#fca5a5' };
-        case 'propeller': return { base: '#0284c7', high: '#7dd3fc' };
-        case 'cruiser': return { base: '#7c3aed', high: '#c4b5fd' };
-        case 'copter': return { base: '#059669', high: '#6ee7b7' };
-        default: return { base: '#2563eb', high: '#93c5fd' };
+        case 'standard': return { base: '#9daeb8', high: '#f0f3e9', accent: '#d7b875' };
+        case 'jet': return { base: '#b75a50', high: '#f4b4a4', accent: '#f2d7a0' };
+        case 'propeller': return { base: '#3d788b', high: '#a8e4ed', accent: '#d7b875' };
+        case 'cruiser': return { base: '#716e9d', high: '#d0c9f5', accent: '#8cecff' };
+        case 'copter': return { base: '#4c8574', high: '#b3e0c9', accent: '#d7b875' };
+        default: return { base: '#9daeb8', high: '#f0f3e9', accent: '#d7b875' };
     }
 }
 
@@ -200,8 +252,10 @@ function startGame() {
     lives = 3;
     bombs = 2;
     bulletCount = 1;
+    power = 0;
     currentStage = 1;
     stageScore = 0;
+    combo = 0; bestCombo = 0; kills = 0; comboTimer = 0; hitCooldown = 0;
     bullets = [];
     enemyBullets = [];
     enemies = [];
@@ -210,6 +264,9 @@ function startGame() {
     boss = null;
     bombEffectTimer = 0;
     isPausedForBanner = false;
+    shootTimer = 0; spawnTimer = 0;
+    isMouseDown = false;
+    setPaused(false);
 
     player.icon = getPlaneIcon(selectedPlaneType);
     player.x = canvas.width / 2;
@@ -223,18 +280,20 @@ function startGame() {
 
 function updateHUD() {
     stageEl.textContent = currentStage;
-    scoreEl.textContent = score;
+    scoreEl.textContent = score.toLocaleString('ko-KR');
+    if (stageProgressFill) stageProgressFill.style.width = `${Math.min(100, stageScore / SCORE_PER_STAGE * 100)}%`;
     livesEl.textContent = lives;
     bombsEl.textContent = bombs;
-    spreadEl.textContent = bulletCount;
+    spreadEl.textContent = Math.min(9, bulletCount + Math.floor(power / 2));
+    if (comboEl) comboEl.textContent = combo.toLocaleString('ko-KR');
 }
 
 let shootTimer = 0;
 function handleShooting() {
     shootTimer++;
-    if (shootTimer % 9 === 0) {
+    if (shootTimer % Math.max(4, 9 - power) === 0) {
         playSound('shoot');
-        let count = bulletCount;
+        let count = Math.min(9, bulletCount + Math.floor(power / 2));
         
         bullets.push({x: player.x, y: player.y - 20, vy: -14, vx: 0, size: 6, color: '#60a5fa'});
 
@@ -255,6 +314,8 @@ function handleEnemies() {
     if (boss) {
         // 보스 탄막 공격 (시간차 발사)
         if (shootTimer % 35 === 0) {
+            const aimAngle = Math.atan2(player.y - (boss.y + 20), player.x - boss.x);
+            enemyBullets.push({x:boss.x, y:boss.y+20, vx:Math.cos(aimAngle)*3.2, vy:Math.sin(aimAngle)*3.2, size:6, color:'#f1dca8'});
             for (let i = -2; i <= 2; i++) {
                 enemyBullets.push({
                     x: boss.x,
@@ -315,7 +376,7 @@ function spawnBoss() {
 }
 
 function triggerBomb() {
-    if (bombs > 0 && !isPausedForBanner) {
+    if (bombs > 0 && !isPausedForBanner && !isManuallyPaused && !gameScreen.classList.contains('hidden')) {
         bombs--;
         playSound('bomb');
         createParticles(canvas.width / 2, canvas.height / 2, '#3b82f6', 60);
@@ -341,6 +402,7 @@ function defeatBoss() {
     boss = null;
     stageScore = 0;
     currentStage++;
+    if (stageProgressFill) stageProgressFill.style.width = '0%';
 
     if (currentStage > 100) {
         gameClear();
@@ -385,8 +447,48 @@ function draw3DShape(ctx, x, y, radius, baseColor, highlightColor, icon) {
     ctx.fillText(icon, x, y + 1);
 }
 
+// 1984-inspired vector aircraft: layered fuselage, swept wings, cockpit and engine glow.
+function drawAircraft(x, y, scale, colors, enemy = false, variant = 'standard') {
+    ctx.save(); ctx.translate(x, y); if (enemy) ctx.rotate(Math.PI); ctx.scale(scale, scale);
+    const base = colors.base || '#9daeb8', hi = colors.high || '#f0f3e9', accent = colors.accent || '#d7b875';
+    if (!enemy) {
+        ctx.globalCompositeOperation = 'lighter';
+        const glow = ctx.createRadialGradient(0, 18, 1, 0, 18, 25);
+        glow.addColorStop(0, accent + 'aa'); glow.addColorStop(1, accent + '00');
+        ctx.fillStyle = glow; ctx.beginPath(); ctx.ellipse(0, 18, 16, 28, 0, 0, Math.PI*2); ctx.fill();
+        ctx.globalCompositeOperation = 'source-over';
+        // exhausts
+        for (const ex of [-7, 7]) { ctx.fillStyle = '#8cecff'; ctx.shadowColor = '#8cecff'; ctx.shadowBlur = 12; ctx.fillRect(ex-1.3, 13, 2.6, 11); }
+    }
+    ctx.shadowColor = enemy ? '#ef7160' : '#8cecff'; ctx.shadowBlur = 8;
+    // swept wings
+    ctx.beginPath();
+    if (enemy) {
+        ctx.moveTo(0,-16); ctx.lineTo(25,-4); ctx.lineTo(19,5); ctx.lineTo(8,2); ctx.lineTo(5,14); ctx.lineTo(-5,14); ctx.lineTo(-8,2); ctx.lineTo(-19,5); ctx.lineTo(-25,-4);
+    } else if (variant === 'jet') {
+        ctx.moveTo(0,-28); ctx.lineTo(5,-7); ctx.lineTo(17,5); ctx.lineTo(13,10); ctx.lineTo(5,6); ctx.lineTo(4,19); ctx.lineTo(8,25); ctx.lineTo(0,22); ctx.lineTo(-8,25); ctx.lineTo(-4,19); ctx.lineTo(-5,6); ctx.lineTo(-13,10); ctx.lineTo(-17,5); ctx.lineTo(-5,-7);
+    } else if (variant === 'propeller') {
+        ctx.moveTo(0,-22); ctx.lineTo(7,-7); ctx.lineTo(27,2); ctx.lineTo(25,12); ctx.lineTo(8,8); ctx.lineTo(6,17); ctx.lineTo(12,23); ctx.lineTo(0,20); ctx.lineTo(-12,23); ctx.lineTo(-6,17); ctx.lineTo(-8,8); ctx.lineTo(-25,12); ctx.lineTo(-27,2); ctx.lineTo(-7,-7);
+    } else if (variant === 'cruiser') {
+        ctx.moveTo(0,-24); ctx.lineTo(11,-7); ctx.lineTo(31,8); ctx.lineTo(28,15); ctx.lineTo(7,8); ctx.lineTo(5,18); ctx.lineTo(10,25); ctx.lineTo(0,22); ctx.lineTo(-10,25); ctx.lineTo(-5,18); ctx.lineTo(-7,8); ctx.lineTo(-28,15); ctx.lineTo(-31,8); ctx.lineTo(-11,-7);
+    } else {
+        ctx.moveTo(0,-25); ctx.lineTo(8,-5); ctx.lineTo(24,7); ctx.lineTo(22,12); ctx.lineTo(7,7); ctx.lineTo(5,17); ctx.lineTo(10,22); ctx.lineTo(10,25); ctx.lineTo(0,22); ctx.lineTo(-10,25); ctx.lineTo(-10,22); ctx.lineTo(-5,17); ctx.lineTo(-7,7); ctx.lineTo(-22,12); ctx.lineTo(-24,7); ctx.lineTo(-8,-5);
+    }
+    ctx.closePath(); ctx.fillStyle = base; ctx.fill(); ctx.lineWidth=1; ctx.strokeStyle=hi; ctx.stroke();
+    // central fuselage
+    ctx.beginPath(); ctx.moveTo(0,-27); ctx.lineTo(4,-13); ctx.lineTo(4,12); ctx.lineTo(0,22); ctx.lineTo(-4,12); ctx.lineTo(-4,-13); ctx.closePath();
+    const metal=ctx.createLinearGradient(-5,0,5,0); metal.addColorStop(0,'#263743'); metal.addColorStop(.45,hi); metal.addColorStop(1,base);
+    ctx.fillStyle=metal; ctx.fill(); ctx.strokeStyle='#edf4f2'; ctx.stroke();
+    // cockpit
+    ctx.beginPath(); ctx.moveTo(0,-20); ctx.lineTo(2.7,-12); ctx.lineTo(2.3,-6); ctx.lineTo(-2.3,-6); ctx.lineTo(-2.7,-12); ctx.closePath();
+    ctx.fillStyle=enemy?'#ffb09b':'#8cecff'; ctx.shadowColor=ctx.fillStyle; ctx.shadowBlur=7; ctx.fill(); ctx.shadowBlur=0;
+    ctx.strokeStyle=accent; ctx.lineWidth=.8; ctx.beginPath(); ctx.moveTo(-15,7);ctx.lineTo(-7,10);ctx.moveTo(15,7);ctx.lineTo(7,10);ctx.stroke();
+    if (variant==='copter') { ctx.strokeStyle=hi;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(-13,-20);ctx.lineTo(13,-20);ctx.moveTo(0,-20);ctx.lineTo(0,-25);ctx.stroke(); }
+    ctx.restore();
+}
+
 function updateGame() {
-    if (isPausedForBanner) return;
+    if (isPausedForBanner || isManuallyPaused) return;
 
     if (isMouseDown) {
         player.x += (mouseX - player.x) * 0.2;
@@ -397,14 +499,21 @@ function updateGame() {
     if (keys['ArrowUp'] || keys['KeyW']) player.y -= player.speed;
     if (keys['ArrowDown'] || keys['KeyS']) player.y += player.speed;
 
-    player.x = Math.max(20, Math.min(canvas.width - 20, player.x));
-    player.y = Math.max(20, Math.min(canvas.height - 20, player.y));
+    if (hitCooldown > 0) hitCooldown--;
+    if (comboTimer > 0) { comboTimer--; if (comboTimer === 0) combo = 0; }
+    player.x = Math.max(24, Math.min(canvas.width - 24, player.x));
+    player.y = Math.max(30, Math.min(canvas.height - 30, player.y));
 
     handleShooting();
     handleEnemies();
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
+    // Deep-night flight grid and subtle radar lanes, inspired by 1980s arcade cabinets.
+    ctx.save(); ctx.strokeStyle='rgba(130,190,220,0.055)'; ctx.lineWidth=1;
+    for(let gy=30; gy<canvas.height; gy+=48){ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(canvas.width,gy);ctx.stroke();}
+    for(let gx=24; gx<canvas.width; gx+=48){ctx.beginPath();ctx.moveTo(gx,0);ctx.lineTo(gx,canvas.height);ctx.stroke();}
+    ctx.strokeStyle='rgba(215,184,117,0.16)';ctx.beginPath();ctx.moveTo(12,0);ctx.lineTo(12,canvas.height);ctx.moveTo(canvas.width-12,0);ctx.lineTo(canvas.width-12,canvas.height);ctx.stroke();ctx.restore();
     // 우주/하늘 배경 별 렌더링
     stars.forEach(star => {
         star.y += star.speed;
@@ -455,10 +564,11 @@ function updateGame() {
         ctx.fill();
 
         // 플레이어와 적 탄막 충돌
-        if (Math.hypot(player.x - eb.x, player.y - eb.y) < 20) {
+        if (hitCooldown <= 0 && Math.hypot(player.x - eb.x, player.y - eb.y) < 20) {
             enemyBullets.splice(index, 1);
             playSound('hit');
             createParticles(player.x, player.y, '#ef4444', 10);
+            hitCooldown = 70;
             if (player.shield) {
                 player.shield = false;
             } else {
@@ -479,7 +589,7 @@ function updateGame() {
         boss.x += boss.vx;
         if (boss.x < 60 || boss.x > canvas.width - 60) boss.vx *= -1;
 
-        draw3DShape(ctx, boss.x, boss.y, 35, '#7c3aed', '#c4b5fd', boss.icon);
+        drawAircraft(boss.x, boss.y, 1.5, {base:'#7c444b', high:'#f0b3a2', accent:'#d7b875'}, true, 'boss');
 
         ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
         ctx.fillRect(canvas.width / 2 - 120, 15, 240, 14);
@@ -492,8 +602,9 @@ function updateGame() {
         ctx.textAlign = 'center';
         ctx.fillText(`[STAGE ${currentStage} BOSS] ${boss.name}`, canvas.width / 2, 37);
 
-        if (Math.hypot(player.x - boss.x, player.y - boss.y) < 50) {
+        if (hitCooldown <= 0 && Math.hypot(player.x - boss.x, player.y - boss.y) < 50) {
             playSound('hit');
+            hitCooldown = 70;
             if (player.shield) {
                 player.shield = false;
             } else {
@@ -504,9 +615,9 @@ function updateGame() {
         }
 
         bullets.forEach((b, bIndex) => {
-            if (Math.hypot(b.x - boss.x, b.y - boss.y) < 45) {
+            if (boss && Math.hypot(b.x - boss.x, b.y - boss.y) < 45) {
                 bullets.splice(bIndex, 1);
-                boss.hp--;
+                boss.hp -= (1 + Math.floor(power / 2));
                 createParticles(b.x, b.y, '#f43f5e', 4);
                 if (boss.hp <= 0) {
                     defeatBoss();
@@ -530,12 +641,13 @@ function updateGame() {
             if (enemy.y > 200 && enemy.x > player.x) enemy.x -= 1.5;
         }
 
-        draw3DShape(ctx, enemy.x, enemy.y, 22, '#334155', '#94a3b8', enemy.icon);
+        drawAircraft(enemy.x, enemy.y, 0.82, {base:'#a44d4a', high:'#f2b5a1', accent:'#f4cf9b'}, true);
 
-        if (Math.hypot(player.x - enemy.x, player.y - enemy.y) < 28) {
+        if (hitCooldown <= 0 && Math.hypot(player.x - enemy.x, player.y - enemy.y) < 28) {
             playSound('hit');
             createParticles(enemy.x, enemy.y, '#ef4444', 15);
             enemies.splice(eIndex, 1);
+            hitCooldown = 70;
             if (player.shield) {
                 player.shield = false;
             } else {
@@ -548,12 +660,13 @@ function updateGame() {
         bullets.forEach((b, bIndex) => {
             if (Math.hypot(b.x - enemy.x, b.y - enemy.y) < 26) {
                 bullets.splice(bIndex, 1);
-                enemy.hp--;
+                enemy.hp -= (1 + Math.floor(power / 3));
                 createParticles(b.x, b.y, '#60a5fa', 5);
                 if (enemy.hp <= 0) {
                     createParticles(enemy.x, enemy.y, '#f59e0b', 18);
                     enemies.splice(eIndex, 1);
-                    score += 150;
+                    kills++; combo++; comboTimer = 150; bestCombo = Math.max(bestCombo, combo);
+                    score += 150 + Math.min(500, combo * 10);
                     stageScore += 150;
                     updateHUD();
 
@@ -586,10 +699,12 @@ function updateGame() {
         ctx.shadowBlur = 10;
         ctx.shadowOffsetY = 4;
         ctx.fillStyle = item.boxColor;
-        ctx.fillRect(item.x - 14, item.y - 14, 28, 28);
+        ctx.beginPath(); ctx.moveTo(item.x, item.y-16); ctx.lineTo(item.x+16,item.y); ctx.lineTo(item.x,item.y+16); ctx.lineTo(item.x-16,item.y); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = item.ribbonColor; ctx.lineWidth = 1.5; ctx.stroke();
         ctx.fillStyle = item.ribbonColor;
         ctx.fillRect(item.x - 4, item.y - 14, 8, 28);
         ctx.fillRect(item.x - 14, item.y - 4, 28, 8);
+        ctx.fillStyle = '#07111a'; ctx.font = 'bold 10px Orbitron, sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(({coin:'W',power:'P',bomb:'B',shield:'S',bonus:'+'})[item.type] || '•', item.x, item.y+1);
         ctx.restore();
 
         if (Math.hypot(player.x - item.x, player.y - item.y) < 28) {
@@ -617,13 +732,14 @@ function updateGame() {
     });
 
     let pColor = getPlaneColor(selectedPlaneType);
-    draw3DShape(ctx, player.x, player.y, 24, pColor.base, pColor.high, player.icon);
+    if (hitCooldown === 0 || Math.floor(hitCooldown / 5) % 2 === 0) drawAircraft(player.x, player.y, 1.0, pColor, false, selectedPlaneType);
+    if (combo >= 3 && comboTimer > 0) { ctx.save(); ctx.textAlign='center'; ctx.font='bold 13px Orbitron, sans-serif'; ctx.fillStyle='#f1dca8'; ctx.shadowColor='#d7b875'; ctx.shadowBlur=10; ctx.fillText(`${combo} HIT COMBO`, player.x, player.y + 42); ctx.restore(); }
 
     if (player.shield) {
-        ctx.strokeStyle = '#38bdf8';
+        ctx.strokeStyle = '#8cecff';
         ctx.lineWidth = 4;
         ctx.beginPath();
-        ctx.arc(player.x, player.y, 30, 0, Math.PI * 2);
+        ctx.arc(player.x, player.y, 31 + Math.sin(Date.now()/100)*2, 0, Math.PI * 2);
         ctx.stroke();
     }
 
@@ -632,21 +748,23 @@ function updateGame() {
         ctx.fillStyle = bombEffectTimer % 4 < 2 ? 'rgba(59, 130, 246, 0.75)' : 'rgba(255, 255, 255, 0.75)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        ctx.fillStyle = '#000';
-        ctx.font = 'bold 22px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText("💥 DELUXE BOMB EXPLOSION 💥", canvas.width / 2, canvas.height / 2);
+        ctx.strokeStyle = '#f1dca8'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(canvas.width/2, canvas.height/2, (55-bombEffectTimer)*5, 0, Math.PI*2); ctx.stroke();
+        ctx.fillStyle = '#f1dca8'; ctx.font = 'bold 15px Orbitron, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('TACTICAL STRIKE', canvas.width / 2, canvas.height / 2);
     }
 }
 
 function gameOver() {
+    if (gameScreen.classList.contains('hidden')) return;
     playSound('hit');
     clearInterval(gameInterval);
     gameScreen.classList.add('hidden');
     gameOverScreen.classList.remove('hidden');
     gameOverTitle.textContent = "GAME OVER";
     gameOverTitle.style.color = "#ef4444";
-    finalScoreEl.textContent = score;
+    finalScoreEl.textContent = score.toLocaleString('ko-KR');
+    if (finalComboEl) finalComboEl.textContent = bestCombo;
+    if (finalKillsEl) finalKillsEl.textContent = kills;
+    saveBestScore();
 }
 
 function gameClear() {
@@ -655,8 +773,22 @@ function gameClear() {
     gameOverScreen.classList.remove('hidden');
     gameOverTitle.textContent = "🏆 100스테이지 디럭스 클리어 성공! 🏆";
     gameOverTitle.style.color = "#10b981";
-    finalScoreEl.textContent = score;
+    finalScoreEl.textContent = score.toLocaleString('ko-KR');
+    if (finalComboEl) finalComboEl.textContent = bestCombo;
+    if (finalKillsEl) finalKillsEl.textContent = kills;
+    saveBestScore();
 }
 
+function saveBestScore() {
+    if (score > bestScore) {
+        bestScore = score;
+        try { localStorage.setItem('skyRaiders84Best', String(bestScore)); } catch (e) {}
+    }
+    if (bestScoreEl) bestScoreEl.textContent = bestScore.toLocaleString('ko-KR');
+}
+
+pauseBtn.addEventListener('click', togglePause);
+resumeBtn.addEventListener('click', () => setPaused(false));
+soundBtn.addEventListener('click', toggleSound);
 startBtn.addEventListener('click', startGame);
 restartBtn.addEventListener('click', startGame);
