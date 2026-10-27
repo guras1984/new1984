@@ -7,38 +7,38 @@
     <link rel="stylesheet" href="style.css">
 
     <style>
+      /* Portal navigation — independent of game logic */
       .portal-home-link {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 5px;
-        padding: 7px 10px;
-        color: #24536e;
-        background: #fff;
-        border: 1px solid #9dcfe5;
-        border-radius: 4px;
-        text-decoration: none;
-        font: 700 11px 'Orbitron', 'Noto Sans KR', sans-serif;
-        white-space: nowrap;
-        box-shadow: none;
+        display:inline-flex; align-items:center; justify-content:center;
+        gap:5px; padding:9px 12px; min-height:36px;
+        border-radius:10px; border:1px solid #a6e8ed;
+        background:linear-gradient(135deg,#e8ffff,#a6f1eb);
+        color:#124858; text-decoration:none;
+        font:800 12px 'Noto Sans KR',sans-serif;
+        box-shadow:0 3px 12px #0004; white-space:nowrap;
+        transition:filter .15s,transform .15s;
       }
-      .portal-home-link:hover { border-color: #ffbd3d; color: #a66b00; }
+      .portal-home-link:hover { filter:brightness(1.07); transform:translateY(-1px); }
+      .portal-home-link:focus-visible { outline:3px solid #ffd166; outline-offset:3px; }
       #start-screen > .portal-home-link,
       #gameover-screen > .portal-home-link {
-        position: absolute;
-        top: 42px;
-        right: 14px;
-        z-index: 5;
+        position:absolute; top:12px; right:12px; z-index:8;
       }
-      #controls-panel > .portal-home-link { flex: 0 0 auto; min-width: 57px; }
+      #controls-panel > .portal-home-link {
+        flex:0 0 auto; min-width:64px; flex-direction:column;
+        padding:6px 9px; gap:2px; line-height:1.1;
+      }
       #controls-panel > .portal-home-link span {
-        display: block; margin-top: 3px; font: 7px 'Orbitron', sans-serif;
-        letter-spacing: .08em; color: #56829a;
+        display:block; margin:0; font:800 10px 'Noto Sans KR',sans-serif;
+        letter-spacing:0; color:#124858;
       }
-      @media (max-width: 420px) {
+      @media(max-width:480px) {
+        #controls-panel { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; padding:8px; }
+        #controls-panel > .utility-btn,
+        #controls-panel > .portal-home-link { min-width:0; width:100%; min-height:42px; }
+        #controls-panel > #bomb-btn { grid-column:1/-1; min-height:42px; }
         #start-screen > .portal-home-link,
-        #gameover-screen > .portal-home-link { top: 40px; right: 10px; padding: 6px 8px; }
-        #controls-panel > .portal-home-link { min-width: 46px; padding: 6px 5px; }
+        #gameover-screen > .portal-home-link { top:8px; right:8px; padding:7px 9px; font-size:11px; }
       }
     </style>
 
