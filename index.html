@@ -8,7 +8,7 @@
 </head>
 <body>
     <div id="game-wrapper">
-        <!-- 시작 화면: 비행기 선택 -->
+        <!-- 시작 화면 -->
         <div id="start-screen" class="screen">
             <h1>🐰 CUTE STAR FIGHTERS 🐥</h1>
             <p>1984 감시망을 피해 날아오르는 아기자기한 우주 모험!</p>
@@ -45,6 +45,7 @@
         <!-- 게임 플레이 화면 -->
         <div id="game-screen" class="screen hidden">
             <div id="hud">
+                <div>스테이지 <span id="stage">1</span></div>
                 <div>점수: <span id="score">0</span></div>
                 <div>목숨: <span id="lives">3</span> ❤️</div>
                 <div>폭탄: <span id="bombs">1</span> 💣</div>
@@ -52,13 +53,13 @@
             </div>
             <canvas id="gameCanvas" width="480" height="580"></canvas>
             <div id="controls-panel">
-                <button id="bomb-btn">💣 필살기 폭탄 발사!</button>
+                <button id="bomb-btn">💣 1984 사상정화 폭탄 발사!</button>
             </div>
         </div>
 
-        <!-- 게임 오버 화면 -->
+        <!-- 게임 클리어 / 오버 화면 -->
         <div id="gameover-screen" class="screen hidden">
-            <h2>GAME OVER</h2>
+            <h2 id="gameover-title">GAME OVER</h2>
             <p>최종 점수: <span id="final-score">0</span></p>
             <button id="restart-btn">다시 하기</button>
         </div>

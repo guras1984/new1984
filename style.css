@@ -119,7 +119,7 @@ body {
     justify-content: space-between;
     padding: 10px 15px;
     background: #181829;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     font-weight: bold;
     box-sizing: border-box;
     border-bottom: 2px solid #2d2d44;
@@ -145,7 +145,7 @@ body {
     width: 100%;
     padding: 10px;
     font-size: 0.9rem;
-    background: linear-gradient(135deg, #ff5858, #f857a6);
+    background: linear-gradient(135deg, #cc3333, #ff5858);
 }
 
 #gameover-screen h2 {
