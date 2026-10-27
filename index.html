@@ -5,11 +5,49 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3D Airplane Fighters: Deluxe Edition</title>
     <link rel="stylesheet" href="style.css">
+
+    <style>
+      .portal-home-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        padding: 7px 10px;
+        color: #24536e;
+        background: #fff;
+        border: 1px solid #9dcfe5;
+        border-radius: 4px;
+        text-decoration: none;
+        font: 700 11px 'Orbitron', 'Noto Sans KR', sans-serif;
+        white-space: nowrap;
+        box-shadow: none;
+      }
+      .portal-home-link:hover { border-color: #ffbd3d; color: #a66b00; }
+      #start-screen > .portal-home-link,
+      #gameover-screen > .portal-home-link {
+        position: absolute;
+        top: 42px;
+        right: 14px;
+        z-index: 5;
+      }
+      #controls-panel > .portal-home-link { flex: 0 0 auto; min-width: 57px; }
+      #controls-panel > .portal-home-link span {
+        display: block; margin-top: 3px; font: 7px 'Orbitron', sans-serif;
+        letter-spacing: .08em; color: #56829a;
+      }
+      @media (max-width: 420px) {
+        #start-screen > .portal-home-link,
+        #gameover-screen > .portal-home-link { top: 40px; right: 10px; padding: 6px 8px; }
+        #controls-panel > .portal-home-link { min-width: 46px; padding: 6px 5px; }
+      }
+    </style>
+
 </head>
 <body>
     <div id="game-wrapper">
         <!-- 시작 화면 -->
         <div id="start-screen" class="screen">
+            <a class="portal-home-link" href="https://guras1984.github.io/webgame/" aria-label="게임 목록으로 돌아가기">🏠 게임 목록</a>
             <div class="title-glow">SKY RAIDERS <span style="color:#8cecff">’84</span></div>
             <p>1984년 아케이드의 긴장감과 현대적인 전술 비행을 하나로.
             <span class="subtitle-en">ONE PILOT. ONE SQUADRON. 100 STAGES.</span></p>
@@ -77,6 +115,7 @@
                 <button id="pause-btn" class="utility-btn" aria-label="일시정지">Ⅱ <span>PAUSE</span></button>
                 <button id="sound-btn" class="utility-btn" aria-label="사운드 켜기/끄기">♫ <span>SOUND</span></button>
                 <button id="quit-btn" class="utility-btn quit-btn" aria-label="게임 종료">■ <span>종료</span></button>
+                <a class="utility-btn portal-home-link" href="https://guras1984.github.io/webgame/" aria-label="게임 목록으로 돌아가기">🏠 <span>게임 목록</span></a>
                 <button id="bomb-btn" class="glow-btn">TACTICAL STRIKE · 폭탄 투하</button>
             </div>
             <div id="pause-overlay" class="hidden" role="dialog" aria-label="일시정지">
@@ -99,11 +138,10 @@
                 <p id="rank-status" class="rank-status" aria-live="polite">랭킹 연결을 준비 중입니다.</p>
                 <ol id="ranking-list" class="ranking-list"><li>랭킹을 불러오는 중...</li></ol>
             </section>
+            <a class="portal-home-link" href="https://guras1984.github.io/webgame/" aria-label="게임 목록으로 돌아가기">🏠 게임 목록</a>
             <button id="restart-btn" class="glow-btn">다시 도전하기</button>
         </div>
     </div>
     <script src="script.js"></script>
-
-<a href="https://guras1984.github.io/webgame/" aria-label="게임 목록으로 돌아가기" style="position:fixed;top:12px;left:12px;z-index:99999;display:inline-flex;align-items:center;gap:6px;padding:10px 14px;border-radius:12px;background:#ffffff;color:#20304a;border:2px solid #b7f3d5;box-shadow:0 4px 18px #0003;font:700 14px/1.2 system-ui,sans-serif;text-decoration:none;">🏠 게임 목록</a>
 </body>
 </html>
