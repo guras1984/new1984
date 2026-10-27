@@ -10,7 +10,7 @@ const stageEl = document.getElementById('stage');
 const scoreEl = document.getElementById('score');
 const livesEl = document.getElementById('lives');
 const bombsEl = document.getElementById('bombs');
-const powerEl = document.getElementById('power');
+const spreadEl = document.getElementById('spread');
 const finalScoreEl = document.getElementById('final-score');
 const gameOverTitle = document.getElementById('gameover-title');
 
@@ -21,7 +21,7 @@ const bannerDesc = document.getElementById('banner-desc');
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-let selectedPlaneType = 'bunny';
+let selectedPlaneType = 'standard';
 
 planeCards.forEach(card => {
     card.addEventListener('click', () => {
@@ -90,10 +90,10 @@ let gameInterval;
 let score = 0;
 let lives = 3;
 let bombs = 2;
-let power = 1;
+let bulletCount = 1; // 총알 발사 줄기 수 (아이템으로 증가)
 let currentStage = 1;
 let stageScore = 0;
-const SCORE_PER_STAGE = 900;
+const SCORE_PER_STAGE = 2500;
 let isPausedForBanner = false;
 
 let player = {
@@ -101,7 +101,7 @@ let player = {
     y: canvas.height - 60,
     size: 30,
     speed: 6,
-    icon: '🐰',
+    icon: '✈️',
     shield: false
 };
 
@@ -149,12 +149,23 @@ canvas.addEventListener('touchmove', e => {
 
 function getPlaneIcon(type) {
     switch(type) {
-        case 'bunny': return '🐰';
-        case 'duck': return '🐥';
-        case 'cat': return '🐱';
-        case 'bear': return '🐻';
-        case 'frog': return '🐸';
-        default: return '🐰';
+        case 'standard': return '✈️';
+        case 'jet': return '🚀';
+        case 'propeller': return '🛩️';
+        case 'cruiser': return '🛸';
+        case 'copter': return '🚁';
+        default: return '✈️';
+    }
+}
+
+function getPlaneColor(type) {
+    switch(type) {
+        case 'standard': return { base: '#2563eb', high: '#93c5fd' };
+        case 'jet': return { base: '#dc2626', high: '#fca5a5' };
+        case 'propeller': return { base: '#0284c7', high: '#7dd3fc' };
+        case 'cruiser': return { base: '#7c3aed', high: '#c4b5fd' };
+        case 'copter': return { base: '#059669', high: '#6ee7b7' };
+        default: return { base: '#2563eb', high: '#93c5fd' };
     }
 }
 
@@ -168,7 +179,7 @@ function startGame() {
     score = 0;
     lives = 3;
     bombs = 2;
-    power = 1;
+    bulletCount = 1;
     currentStage = 1;
     stageScore = 0;
     bullets = [];
@@ -193,59 +204,45 @@ function updateHUD() {
     scoreEl.textContent = score;
     livesEl.textContent = lives;
     bombsEl.textContent = bombs;
-    powerEl.textContent = power;
+    spreadEl.textContent = bulletCount;
 }
 
-// 미사일 발사 (최대 Lv.5)
+// 총알 발사 (bulletCount에 따라 발사되는 총알 갯수(줄기)가 양옆으로 늘어남)
 let shootTimer = 0;
 function handleShooting() {
     shootTimer++;
     if (shootTimer % 10 === 0) {
         playSound('shoot');
-        let p = power;
-        if (selectedPlaneType === 'bunny') {
-            bullets.push({x: player.x, y: player.y - 20, vy: -12, size: 6, color: '#dc2626'});
-            if (p >= 2) { bullets.push({x: player.x - 12, y: player.y - 10, vy: -12, size: 5, color: '#dc2626'}); bullets.push({x: player.x + 12, y: player.y - 10, vy: -12, size: 5, color: '#dc2626'}); }
-            if (p >= 3) { bullets.push({x: player.x - 24, y: player.y, vy: -11, size: 5, color: '#b91c1c'}); bullets.push({x: player.x + 24, y: player.y, vy: -11, size: 5, color: '#b91c1c'}); }
-            if (p >= 4) { bullets.push({x: player.x - 6, y: player.y - 15, vy: -13, size: 7, color: '#ef4444'}); bullets.push({x: player.x + 6, y: player.y - 15, vy: -13, size: 7, color: '#ef4444'}); }
-            if (p >= 5) { bullets.push({x: player.x - 32, y: player.y + 5, vy: -10, size: 6, color: '#fff'}); bullets.push({x: player.x + 32, y: player.y + 5, vy: -10, size: 6, color: '#fff'}); }
-        } else if (selectedPlaneType === 'duck') {
-            bullets.push({x: player.x - 8, y: player.y - 15, vy: -11, vx: -1, size: 6, color: '#f59e0b'});
-            bullets.push({x: player.x + 8, y: player.y - 15, vy: -11, vx: 1, size: 6, color: '#f59e0b'});
-            if (p >= 2) { bullets.push({x: player.x - 20, y: player.y - 5, vy: -11, vx: -2, size: 5, color: '#f59e0b'}); bullets.push({x: player.x + 20, y: player.y - 5, vy: -11, vx: 2, size: 5, color: '#f59e0b'}); }
-            if (p >= 3) { bullets.push({x: player.x, y: player.y - 25, vy: -12, size: 8, color: '#d97706'}); }
-            if (p >= 4) { bullets.push({x: player.x - 30, y: player.y, vy: -10, vx: -3, size: 6, color: '#fef3c7'}); bullets.push({x: player.x + 30, y: player.y, vy: -10, vx: 3, size: 6, color: '#fef3c7'}); }
-            if (p >= 5) { bullets.push({x: player.x - 15, y: player.y - 20, vy: -13, vx: -0.5, size: 6, color: '#fff'}); bullets.push({x: player.x + 15, y: player.y - 20, vy: -13, vx: 0.5, size: 6, color: '#fff'}); }
-        } else if (selectedPlaneType === 'cat') {
-            bullets.push({x: player.x, y: player.y - 20, vy: -12, vx: 0, size: 6, color: '#0284c7'});
-            bullets.push({x: player.x - 15, y: player.y - 15, vy: -11, vx: -2, size: 5, color: '#0284c7'});
-            bullets.push({x: player.x + 15, y: player.y - 15, vy: -11, vx: 2, size: 5, color: '#0284c7'});
-            if (p >= 3) { bullets.push({x: player.x - 28, y: player.y - 10, vy: -10, vx: -4, size: 5, color: '#0369a1'}); bullets.push({x: player.x + 28, y: player.y - 10, vy: -10, vx: 4, size: 5, color: '#0369a1'}); }
-            if (p >= 5) { bullets.push({x: player.x - 40, y: player.y, vy: -9, vx: -5, size: 6, color: '#fff'}); bullets.push({x: player.x + 40, y: player.y, vy: -9, vx: 5, size: 6, color: '#fff'}); }
-        } else if (selectedPlaneType === 'bear') {
-            bullets.push({x: player.x, y: player.y - 25, vy: -10, size: p >= 3 ? 14 : 10, color: '#9a3412'});
-            if (p >= 2) { bullets.push({x: player.x - 10, y: player.y - 15, vy: -11, size: 8, color: '#7c2d12'}); bullets.push({x: player.x + 10, y: player.y - 15, vy: -11, size: 8, color: '#7c2d12'}); }
-            if (p >= 4) { bullets.push({x: player.x - 20, y: player.y - 5, vy: -11, size: 9, color: '#431407'}); bullets.push({x: player.x + 20, y: player.y - 5, vy: -11, size: 9, color: '#431407'}); }
-            if (p >= 5) { bullets.push({x: player.x, y: player.y - 30, vy: -14, size: 16, color: '#fff'}); }
-        } else if (selectedPlaneType === 'frog') {
-            bullets.push({x: player.x - 12, y: player.y - 15, vy: -12, vx: -0.5, size: 6, color: '#059669'});
-            bullets.push({x: player.x + 12, y: player.y - 15, vy: -12, vx: 0.5, size: 6, color: '#059669'});
-            if (p >= 2) { bullets.push({x: player.x - 25, y: player.y - 10, vy: -11, vx: -2, size: 6, color: '#047857'}); bullets.push({x: player.x + 25, y: player.y - 10, vy: -11, vx: 2, size: 6, color: '#047857'}); }
-            if (p >= 4) { bullets.push({x: player.x - 38, y: player.y - 5, vy: -10, vx: -3.5, size: 6, color: '#065f46'}); bullets.push({x: player.x + 38, y: player.y - 5, vy: -10, vx: 3.5, size: 6, color: '#065f46'}); }
-            if (p >= 5) { bullets.push({x: player.x, y: player.y - 25, vy: -13, size: 10, color: '#fff'}); }
+        let count = bulletCount;
+        
+        // 중앙 탄
+        bullets.push({x: player.x, y: player.y - 20, vy: -13, vx: 0, size: 6, color: '#dc2626'});
+
+        // 양옆으로 추가되는 탄막 줄기들
+        for (let i = 1; i <= Math.floor(count / 2); i++) {
+            bullets.push({x: player.x - (i * 14), y: player.y - 10, vy: -13, vx: -i * 0.6, size: 5, color: '#ef4444'});
+            bullets.push({x: player.x + (i * 14), y: player.y - 10, vy: -13, vx: i * 0.6, size: 5, color: '#ef4444'});
+        }
+        if (count % 2 === 0 && count > 0) {
+            bullets.push({x: player.x - 28, y: player.y, vy: -12, vx: -1.2, size: 5, color: '#b91c1c'});
+            bullets.push({x: player.x + 28, y: player.y, vy: -12, vx: 1.2, size: 5, color: '#b91c1c'});
         }
     }
 }
 
-// 적 생성 및 복잡한 패턴
+// 적 생성 및 패턴
 let spawnTimer = 0;
 function handleEnemies() {
     if (boss) return;
 
+    if (stageScore >= SCORE_PER_STAGE) {
+        spawnBoss();
+        return;
+    }
+
     spawnTimer++;
-    let spawnRate = Math.max(12, 38 - (currentStage * 0.3));
-    if (spawnTimer % spawnRate === 0) {
-        // 1984 디스토피아적 무서운 적들 (사상경찰, 텔레스크린, 감시탑, 고문관 등)
+    let spawnRate = Math.max(16, 38 - (currentStage * 0.25));
+    if (spawnTimer % Math.floor(spawnRate) === 0) {
         const dystopiaMonsters = ['👁️', '👮‍♂️', '📺', '🚨', '🏛️', '⚡', '⛓️', '🩸', '👁️‍🗨️', '⚠️'];
         const patterns = ['straight', 'wave', 'zigzag', 'dive'];
         let chosenPattern = patterns[Math.floor(Math.random() * patterns.length)];
@@ -255,20 +252,16 @@ function handleEnemies() {
             y: -30,
             startX: Math.random() * (canvas.width - 60) + 30,
             size: 28,
-            speed: (Math.random() * 1.8 + 1.8) + (currentStage * 0.05),
+            speed: (Math.random() * 1.6 + 1.4) + (currentStage * 0.02),
             hp: 1 + Math.floor(currentStage / 20),
             icon: dystopiaMonsters[Math.floor(Math.random() * dystopiaMonsters.length)],
             pattern: chosenPattern,
             angle: Math.random() * Math.PI * 2
         });
     }
-
-    if (stageScore >= SCORE_PER_STAGE) {
-        spawnBoss();
-    }
 }
 
-// 보스 소환 (1984 원작 기반 거대 보스들)
+// 보스 소환
 function spawnBoss() {
     enemies = [];
     const bossIcons = ['🟥', '👁️‍🗨️', '🏛️', '⛓️', '🚨', '👑', '☠️', '⚡'];
@@ -280,35 +273,36 @@ function spawnBoss() {
         y: -60,
         targetY: 100,
         size: 65,
-        hp: 35 + (currentStage * 15),
-        maxHp: 35 + (currentStage * 15),
+        hp: 45 + (currentStage * 12),
+        maxHp: 45 + (currentStage * 12),
         icon: bossIcons[stageIdx],
         name: bossNames[Math.floor((currentStage - 1) / bossIcons.length) % bossNames.length],
-        vx: 2 + (currentStage * 0.05)
+        vx: 2 + (currentStage * 0.02)
     };
 }
 
-// 강력한 1984 사상정화 폭탄 발사 (화면 전체 붕괴/검열 임팩트)
+// 폭탄 발사
 function triggerBomb() {
     if (bombs > 0 && !isPausedForBanner) {
         bombs--;
         playSound('bomb');
         enemies = [];
         if (boss) {
-            boss.hp -= 45 + (currentStage * 2);
+            boss.hp -= 50 + (currentStage * 2);
             if (boss.hp <= 0) {
                 defeatBoss();
             }
         }
-        score += 500;
+        score += 400;
+        stageScore += 400;
         updateHUD();
-        bombEffectTimer = 50; // 더 길고 강렬한 임팩트 프레임
+        bombEffectTimer = 50;
     }
 }
 bombBtn.addEventListener('click', triggerBomb);
 
 function defeatBoss() {
-    score += 1500;
+    score += 2000;
     boss = null;
     stageScore = 0;
     currentStage++;
@@ -329,6 +323,31 @@ function defeatBoss() {
         isPausedForBanner = false;
         updateHUD();
     }, 2200);
+}
+
+// 3D 입체감 효과 렌더링 헬퍼 함수
+function draw3DShape(ctx, x, y, radius, baseColor, highlightColor, icon) {
+    let grad = ctx.createRadialGradient(x - radius/3, y - radius/3, radius/6, x, y, radius);
+    grad.addColorStop(0, highlightColor);
+    grad.addColorStop(0.7, baseColor);
+    grad.addColorStop(1, '#000000');
+
+    ctx.save();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetX = 3;
+    ctx.shadowOffsetY = 5;
+
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.font = `${Math.floor(radius * 1.3)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(icon, x, y + 1);
 }
 
 function updateGame() {
@@ -378,10 +397,7 @@ function updateGame() {
         boss.x += boss.vx;
         if (boss.x < 60 || boss.x > canvas.width - 60) boss.vx *= -1;
 
-        ctx.font = '55px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(boss.icon, boss.x, boss.y);
+        draw3DShape(ctx, boss.x, boss.y, 35, '#991b1b', '#f87171', boss.icon);
 
         ctx.fillStyle = '#94a3b8';
         ctx.fillRect(canvas.width / 2 - 120, 15, 240, 12);
@@ -389,9 +405,10 @@ function updateGame() {
         ctx.fillRect(canvas.width / 2 - 120, 15, Math.max(0, (boss.hp / boss.maxHp) * 240), 12);
         ctx.fillStyle = '#0f172a';
         ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'center';
         ctx.fillText(`[STAGE ${currentStage} BOSS] ${boss.name}`, canvas.width / 2, 36);
 
-        if (Math.hypot(player.x - boss.x, player.y - boss.y) < 45) {
+        if (Math.hypot(player.x - boss.x, player.y - boss.y) < 50) {
             playSound('hit');
             if (player.shield) {
                 player.shield = false;
@@ -403,7 +420,7 @@ function updateGame() {
         }
 
         bullets.forEach((b, bIndex) => {
-            if (Math.hypot(b.x - boss.x, b.y - boss.y) < 40) {
+            if (Math.hypot(b.x - boss.x, b.y - boss.y) < 45) {
                 bullets.splice(bIndex, 1);
                 boss.hp--;
                 if (boss.hp <= 0) {
@@ -428,12 +445,9 @@ function updateGame() {
             if (enemy.y > 200 && enemy.x > player.x) enemy.x -= 1.5;
         }
 
-        ctx.font = '28px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(enemy.icon, enemy.x, enemy.y);
+        draw3DShape(ctx, enemy.x, enemy.y, 22, '#475569', '#94a3b8', enemy.icon);
 
-        if (Math.hypot(player.x - enemy.x, player.y - enemy.y) < 26) {
+        if (Math.hypot(player.x - enemy.x, player.y - enemy.y) < 28) {
             playSound('hit');
             enemies.splice(eIndex, 1);
             if (player.shield) {
@@ -446,7 +460,7 @@ function updateGame() {
         }
 
         bullets.forEach((b, bIndex) => {
-            if (Math.hypot(b.x - enemy.x, b.y - enemy.y) < 24) {
+            if (Math.hypot(b.x - enemy.x, b.y - enemy.y) < 26) {
                 bullets.splice(bIndex, 1);
                 enemy.hp--;
                 if (enemy.hp <= 0) {
@@ -455,9 +469,10 @@ function updateGame() {
                     stageScore += 150;
                     updateHUD();
 
-                    // 1984 원작 기반 다양한 아이템 드랍 (선물상자 색상별)
-                    if (Math.random() < 0.4) {
+                    // 1984 테마 아이템 (총알 갯수를 늘려주는 '미니스트리 동전' 포함)
+                    if (Math.random() < 0.42) {
                         const itemTypes = [
+                            { type: 'coin', boxColor: '#eab308', ribbonColor: '#fef08a', name: '미니스트리 동전 (총알 수 증가)' },
                             { type: 'choco', boxColor: '#7c2d12', ribbonColor: '#f87171', name: '초콜릿 (파워 업)' },
                             { type: 'gin', boxColor: '#0369a1', ribbonColor: '#ffffff', name: '빅토리 진 (폭탄 충전)' },
                             { type: 'paperweight', boxColor: '#0d9488', ribbonColor: '#ccfbff', name: '유리문진 (실드)' },
@@ -476,28 +491,35 @@ function updateGame() {
         }
     });
 
-    // 아이템 (선물상자)
+    // 아이템 (3D 입체 선물상자)
     items.forEach((item, iIndex) => {
         item.y += item.vy;
 
+        ctx.save();
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+        ctx.shadowBlur = 8;
+        ctx.shadowOffsetY = 4;
         ctx.fillStyle = item.boxColor;
         ctx.fillRect(item.x - 14, item.y - 14, 28, 28);
         ctx.fillStyle = item.ribbonColor;
         ctx.fillRect(item.x - 4, item.y - 14, 8, 28);
         ctx.fillRect(item.x - 14, item.y - 4, 28, 8);
+        ctx.restore();
 
         if (Math.hypot(player.x - item.x, player.y - item.y) < 28) {
             playSound('item');
             items.splice(iIndex, 1);
-            if (item.type === 'choco') {
+            if (item.type === 'coin') {
+                bulletCount = Math.min(9, bulletCount + 1); // 먹을 때마다 총알 줄기 수 증가 (최대 9줄기)
+            } else if (item.type === 'choco') {
                 if (power < 5) power++;
             } else if (item.type === 'gin') {
                 bombs += 2;
             } else if (item.type === 'paperweight') {
                 player.shield = true;
             } else if (item.type === 'diary') {
-                score += 600;
-                stageScore += 600;
+                score += 800;
+                stageScore += 800;
             } else if (item.type === 'cigarette') {
                 player.speed = Math.min(10, player.speed + 1);
             }
@@ -510,20 +532,17 @@ function updateGame() {
     });
 
     // 플레이어
-    ctx.font = '32px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(player.icon, player.x, player.y);
+    let pColor = getPlaneColor(selectedPlaneType);
+    draw3DShape(ctx, player.x, player.y, 24, pColor.base, pColor.high, player.icon);
 
     if (player.shield) {
         ctx.strokeStyle = '#0284c7';
         ctx.lineWidth = 4;
         ctx.beginPath();
-        ctx.arc(player.x, player.y, 26, 0, Math.PI * 2);
+        ctx.arc(player.x, player.y, 30, 0, Math.PI * 2);
         ctx.stroke();
     }
 
-    // 1984 원작 감성의 더욱 강력하고 압도적인 폭발/검열 임팩트 연출
     if (bombEffectTimer > 0) {
         bombEffectTimer--;
         ctx.fillStyle = bombEffectTimer % 4 < 2 ? 'rgba(185, 28, 28, 0.75)' : 'rgba(255, 255, 255, 0.75)';

@@ -3,40 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cute Star Fighters: 1984 Nightmare</title>
+    <title>Cute Star Fighters: 3D Airplane Edition</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="game-wrapper">
         <!-- 시작 화면 -->
         <div id="start-screen" class="screen">
-            <h1>🐰 CUTE FIGHTERS vs 1984 👁️</h1>
-            <p>빅 브라더의 감시망을 뚫고 나아가는 100스테이지 디스토피아 대모험!</p>
+            <h1>✈️ 3D AIRPLANE FIGHTERS vs 1984 👁️</h1>
+            <p>다양한 전투기와 비행선으로 100스테이지 디스토피아 돌파!</p>
             <div class="selection-container">
-                <div class="plane-card selected" data-plane="bunny">
-                    <div class="plane-icon">🐰</div>
-                    <h3>핑크 버니</h3>
-                    <p>고속형 / 표준 연사</p>
+                <div class="plane-card selected" data-plane="standard">
+                    <div class="plane-icon">✈️</div>
+                    <h3>스탠더드 공군기</h3>
+                    <p>균형 잡힌 표준형</p>
                 </div>
-                <div class="plane-card" data-plane="duck">
-                    <div class="plane-icon">🐥</div>
-                    <h3>옐로우 덕</h3>
-                    <p>밸런스형 / 2WAY탄</p>
+                <div class="plane-card" data-plane="jet">
+                    <div class="plane-icon">🚀</div>
+                    <h3>레드 제트</h3>
+                    <p>고속형 / 강력한 화력</p>
                 </div>
-                <div class="plane-card" data-plane="cat">
-                    <div class="plane-icon">🐱</div>
-                    <h3>퍼플 캣</h3>
-                    <p>확산형 / 3WAY탄</p>
+                <div class="plane-card" data-plane="propeller">
+                    <div class="plane-icon">🛩️</div>
+                    <h3>블루 프로펠러</h3>
+                    <p>안정적인 연사형</p>
                 </div>
-                <div class="plane-card" data-plane="bear">
-                    <div class="plane-icon">🐻</div>
-                    <h3>브라운 베어</h3>
-                    <p>파워형 / 강력한 단발</p>
+                <div class="plane-card" data-plane="cruiser">
+                    <div class="plane-icon">🛸</div>
+                    <h3>스타 크루저</h3>
+                    <p>광역 확산 공격형</p>
                 </div>
-                <div class="plane-card" data-plane="frog">
-                    <div class="plane-icon">🐸</div>
-                    <h3>그린 프로그</h3>
-                    <p>특수형 / 넓은 범위</p>
+                <div class="plane-card" data-plane="copter">
+                    <div class="plane-icon">🚁</div>
+                    <h3>그린 헬기</h3>
+                    <p>특수 방어형</p>
                 </div>
             </div>
             <button id="start-btn">사상항전 시작하기</button>
@@ -49,7 +49,7 @@
                 <div>점수: <span id="score">0</span></div>
                 <div>목숨: <span id="lives">3</span> ❤️</div>
                 <div>폭탄: <span id="bombs">2</span> 💣</div>
-                <div>파워: Lv.<span id="power">1</span> 🎁</div>
+                <div>총알수: <span id="spread">1</span>줄 🪙</div>
             </div>
             <div id="canvas-container">
                 <canvas id="gameCanvas" width="480" height="580"></canvas>
