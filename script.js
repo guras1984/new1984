@@ -47,12 +47,25 @@ const difficultySettings = {
     normal: { spawnInterval: 1.00, enemySpeed: 1.00, enemyHp: 1.00, bossHp: 1.00, lives: 3, bulletSpeed: 1.00 },
     hard:   { spawnInterval: 0.78, enemySpeed: 1.28, enemyHp: 1.35, bossHp: 1.45, lives: 2, bulletSpeed: 1.25 }
 };
+const planeSpecs = {
+    standard:  { speed: 6.5, fireDelay: 9, initialSpread: 1, shield: 0, name: 'FALCON' },
+    jet:       { speed: 8.2, fireDelay: 7, initialSpread: 1, shield: 0, name: 'VIPER' },
+    propeller: { speed: 6.1, fireDelay: 6, initialSpread: 1, shield: 0, name: 'WRAITH' },
+    cruiser:   { speed: 5.8, fireDelay: 10, initialSpread: 3, shield: 0, name: 'PHANTOM' },
+    copter:    { speed: 5.6, fireDelay: 10, initialSpread: 1, shield: 2, name: 'AEGIS' }
+};
+const planeStatusEl = document.getElementById('active-plane');
 
 planeCards.forEach(card => {
-    card.addEventListener('click', () => {
-        planeCards.forEach(c => c.classList.remove('selected'));
+    const selectPlane = () => {
+        planeCards.forEach(c => {c.classList.remove('selected'); c.setAttribute('aria-pressed', 'false');});
         card.classList.add('selected');
+        card.setAttribute('aria-pressed', 'true');
         selectedPlaneType = card.dataset.plane;
+    };
+    card.addEventListener('click', selectPlane);
+    card.addEventListener('keydown', e => {
+        if (e.code === 'Enter' || e.code === 'Space') {e.preventDefault(); selectPlane();}
     });
 });
 
@@ -80,8 +93,30 @@ try { bestScore = Number(localStorage.getItem('skyRaiders84Best') || 0); } catch
 if (bestScoreEl) bestScoreEl.textContent = bestScore.toLocaleString('ko-KR');
 function initAudio() {
     if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const AudioEngine = window.AudioContext || window.webkitAudioContext;
+        if (!AudioEngine) return;
+        try { audioCtx = new AudioEngine(); } catch (error) { console.warn('Audio unavailable', error); }
     }
+    if (audioCtx?.state === 'suspended') audioCtx.resume().catch(() => {});
+}
+
+// Soft original arcade arpeggio, generated locally (no external audio file).
+function playMusicBeat() {
+    if (!audioCtx || soundMuted || frameCount % 23 !== 0) return;
+    const sequence = [261.63,392,523.25,659.25,523.25,392,293.66,440,587.33,698.46,587.33,440,329.63,493.88,659.25,783.99];
+    const note = sequence[Math.floor(frameCount / 23) % sequence.length];
+    try {
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(note, now);
+        gain.gain.setValueAtTime(.0001, now);
+        gain.gain.linearRampToValueAtTime(.018, now + .015);
+        gain.gain.exponentialRampToValueAtTime(.0001, now + .23);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(now); osc.stop(now + .24);
+    } catch (error) {}
 }
 
 function playSound(type) {
@@ -133,6 +168,10 @@ function playSound(type) {
 }
 
 let gameInterval;
+let stageBannerTimeout = null;
+let frameCount = 0;
+let pickupNoticeTimeout = null;
+const pickupNotice = document.getElementById('pickup-notice');
 let score = 0;
 let lives = 3;
 let bombs = 2;
@@ -141,6 +180,7 @@ let power = 0;
 let currentStage = 1;
 let stageScore = 0;
 let combo = 0, bestCombo = 0, kills = 0, comboTimer = 0, hitCooldown = 0;
+let killsWithoutItem = 0;
 let missiles = [];
 let missileAmmo = 0;
 let shieldHits = 0;
@@ -164,6 +204,9 @@ let particles = [];
 let stars = [];
 let boss = null;
 let bombEffectTimer = 0;
+let screenShake = 0;
+let combatTexts = [];
+let pickupCount = 0;
 
 for(let i=0; i<60; i++) {
     stars.push({
@@ -181,13 +224,18 @@ let mouseY = player.y;
 let isMouseDown = false;
 
 window.addEventListener('keydown', e => {
-    if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
+    if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code) && !gameScreen.classList.contains('hidden')) e.preventDefault();
+    if (e.repeat || ['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
     if ((e.code === 'KeyP' || e.code === 'Escape') && !gameScreen.classList.contains('hidden')) togglePause();
-    if (e.code === 'KeyM') toggleSound();
+    if (e.code === 'KeyM' && !gameScreen.classList.contains('hidden')) toggleSound();
+    if (e.code === 'Space' || e.code === 'KeyB') triggerBomb();
     keys[e.code] = true;
 }, { passive: false });
 window.addEventListener('keyup', e => keys[e.code] = false);
-window.addEventListener('blur', () => { keys = {}; if (!gameScreen.classList.contains('hidden')) setPaused(true); });
+window.addEventListener('blur', () => { keys = {}; if (!gameScreen.classList.contains('hidden') && !isPausedForBanner) setPaused(true); });
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden && !gameScreen.classList.contains('hidden') && !isPausedForBanner) setPaused(true);
+});
 
 function setPaused(paused) {
     isManuallyPaused = paused;
@@ -235,6 +283,8 @@ canvas.addEventListener('pointermove', e => {
     mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
     mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
 });
+canvas.addEventListener('pointerup', e => { if (e.pointerType === 'touch') isMouseDown = false; });
+canvas.addEventListener('pointercancel', e => { if (e.pointerType === 'touch') isMouseDown = false; });
 
 function getPlaneIcon(type) {
     switch(type) {
@@ -278,6 +328,9 @@ function createParticles(x, y, color, count = 12) {
 
 function startGame() {
     initAudio();
+    clearTimeout(stageBannerTimeout);
+    clearTimeout(pickupNoticeTimeout);
+    if (pickupNotice) pickupNotice.classList.add('hidden');
     startScreen.classList.add('hidden');
     gameOverScreen.classList.add('hidden');
     gameScreen.classList.remove('hidden');
@@ -286,11 +339,13 @@ function startGame() {
     score = 0;
     lives = getDifficulty().lives;
     bombs = 2;
-    bulletCount = 1;
+    const spec = planeSpecs[selectedPlaneType] || planeSpecs.standard;
+    bulletCount = spec.initialSpread;
     power = 0;
     currentStage = 1;
     stageScore = 0;
     combo = 0; bestCombo = 0; kills = 0; comboTimer = 0; hitCooldown = 0;
+    killsWithoutItem = 0;
     bullets = [];
     enemyBullets = [];
     enemies = [];
@@ -298,16 +353,22 @@ function startGame() {
     particles = [];
     boss = null;
     bombEffectTimer = 0;
+    screenShake = 0;
+    combatTexts = [];
+    pickupCount = 0;
     isPausedForBanner = false;
     shootTimer = 0; spawnTimer = 0;
     isMouseDown = false;
+    frameCount = 0;
     setPaused(false);
 
     player.icon = getPlaneIcon(selectedPlaneType);
+    player.speed = spec.speed;
     player.x = canvas.width / 2;
     player.y = canvas.height - 80;
-    player.shield = false;
-    shieldHits = 0;
+    player.shield = spec.shield > 0;
+    shieldHits = spec.shield;
+    if (planeStatusEl) planeStatusEl.textContent = spec.name;
     missileAmmo = 0;
     missiles = [];
 
@@ -330,7 +391,8 @@ function updateHUD() {
 let shootTimer = 0;
 function handleShooting() {
     shootTimer++;
-    if (shootTimer % Math.max(4, 9 - power) === 0) {
+    const spec = planeSpecs[selectedPlaneType] || planeSpecs.standard;
+    if (shootTimer % Math.max(3, spec.fireDelay - power) === 0) {
         playSound('shoot');
         let count = Math.min(9, bulletCount + Math.floor(power / 2));
         
@@ -341,8 +403,7 @@ function handleShooting() {
             bullets.push({x: player.x + (i * 14), y: player.y - 10, vy: -14, vx: i * 0.6, size: 5, color: '#3b82f6'});
         }
         if (count % 2 === 0 && count > 0) {
-            bullets.push({x: player.x - 28, y: player.y, vy: -13, vx: -1.2, size: 5, color: '#1d4ed8'});
-            bullets.push({x: player.x + 28, y: player.y, vy: -13, vx: 1.2, size: 5, color: '#1d4ed8'});
+            bullets.push({x: player.x - 7, y: player.y - 12, vy: -13, vx: -0.35, size: 5, color: '#1d4ed8'});
         }
     }
     // 일반 탄환의 발사 속도와 별개로 유도탄은 일정 간격으로 발사됩니다.
@@ -354,23 +415,69 @@ function handleShooting() {
     }
 }
 
+// Every aircraft and every weapon uses the same reward rule.
+function maybeDropItem(enemy) {
+    const easy = selectedDifficulty === 'easy';
+    const chance = easy ? 0.66 : selectedDifficulty === 'hard' ? 0.34 : 0.46;
+    const guaranteeAfter = easy ? 2 : 4;
+    if (Math.random() >= chance && killsWithoutItem < guaranteeAfter - 1) {
+        killsWithoutItem++;
+        return;
+    }
+    killsWithoutItem = 0;
+    const drops = [
+        { type: 'life', boxColor: '#d83f65', ribbonColor: '#fff2f5', name: '추가 목숨 +1', symbol: '♥' },
+        { type: 'shield', boxColor: '#168b91', ribbonColor: '#b9fbff', name: '방어막 충전', symbol: 'S' },
+        { type: 'missile', boxColor: '#d17a32', ribbonColor: '#ffe0a6', name: '유도탄 +3', symbol: 'M' },
+        { type: 'coin', boxColor: '#b28b3c', ribbonColor: '#fff0b3', name: '무장 확장', symbol: 'W' },
+        { type: 'power', boxColor: '#bd5149', ribbonColor: '#ffd0b8', name: '파워 업', symbol: 'P' },
+        { type: 'bomb', boxColor: '#2876a0', ribbonColor: '#bae6fd', name: '폭탄 충전', symbol: 'B' },
+        { type: 'bonus', boxColor: '#a9852b', ribbonColor: '#fef08a', name: '보너스 점수', symbol: '+' }
+    ];
+    const lifeChance = easy ? 0.34 : selectedDifficulty === 'hard' ? 0.07 : 0.13;
+    const picked = Math.random() < lifeChance ? drops[0] : drops[1 + Math.floor(Math.random() * (drops.length - 1))];
+    items.push({ x: Math.max(20, Math.min(canvas.width - 20, enemy.x)), y: enemy.y, vy: 1.35, phase: Math.random() * Math.PI * 2, ...picked });
+}
+
+function awardEnemyKill(enemy) {
+    createParticles(enemy.x, enemy.y, '#f59e0b', 18);
+    kills++; combo++; comboTimer = 150;
+    bestCombo = Math.max(bestCombo, combo);
+    score += 150 + Math.min(500, combo * 10);
+    stageScore += 150;
+    addCombatText(enemy.x, enemy.y, `+${150 + Math.min(500, combo * 10)}`, '#ffdd69');
+    maybeDropItem(enemy);
+    updateHUD();
+}
+
+function addCombatText(x, y, label, color = '#fff') {
+    if (combatTexts.length > 24) combatTexts.shift();
+    combatTexts.push({x, y, label, color, opacity:1, vy:-1.1});
+}
+
 // 적 생성 및 탄막 발사 패턴
 let spawnTimer = 0;
 function handleEnemies() {
     if (boss) {
-        // 보스 탄막 공격 (시간차 발사)
-        if (shootTimer % 35 === 0) {
+        // Bosses rotate between aimed volleys, expanding fans and sweeping curtains.
+        const interval = selectedDifficulty === 'easy' ? 52 : selectedDifficulty === 'hard' ? 34 : 43;
+        if (boss.y > 40 && shootTimer % interval === 0 && enemyBullets.length < 65) {
             const aimAngle = Math.atan2(player.y - (boss.y + 20), player.x - boss.x);
             const bulletScale = getDifficulty().bulletSpeed;
-            enemyBullets.push({x:boss.x, y:boss.y+20, vx:Math.cos(aimAngle)*3.2*bulletScale, vy:Math.sin(aimAngle)*3.2*bulletScale, size:6, color:'#f1dca8'});
-            for (let i = -2; i <= 2; i++) {
+            const phase = (currentStage - 1) % 3;
+            const count = phase === 0 ? 3 : phase === 1 ? 5 : 6;
+            for (let i = 0; i < count; i++) {
+                const angle = phase === 0 ? aimAngle + (i - 1) * .2
+                    : phase === 1 ? Math.PI / 2 + (i - 2) * .24
+                    : Math.PI / 2 + Math.sin(shootTimer * .045) * .5 + (i - 2.5) * .16;
+                const speed = (phase === 0 ? 3.0 : 3.25) * bulletScale;
                 enemyBullets.push({
                     x: boss.x,
                     y: boss.y + 20,
-                    vx: i * 1.5 * getDifficulty().bulletSpeed,
-                    vy: 4.5 * getDifficulty().bulletSpeed,
-                    size: 5,
-                    color: '#f87171'
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    size: 5.5,
+                    color: phase === 1 ? '#ef476f' : '#b45360'
                 });
             }
         }
@@ -386,7 +493,9 @@ function handleEnemies() {
     const difficulty = getDifficulty();
     const spawnRate = Math.max(12, (35 - (currentStage * 0.3)) * difficulty.spawnInterval);
     if (spawnTimer % Math.floor(spawnRate) === 0) {
-        const patterns = ['straight', 'wave', 'zigzag', 'dive'];
+        const patterns = currentStage < 3 ? ['straight', 'wave', 'dive'] :
+            currentStage < 8 ? ['straight','wave','zigzag','dive','swoop'] :
+            ['straight','wave','zigzag','dive','swoop','orbit'];
         const enemyTypes = [
             { type: 'interceptor', base: '#a83f3b', high: '#ffc1a8', accent: '#ffe2a8' },
             { type: 'bomber', base: '#7e4a34', high: '#f0b88a', accent: '#ffd166' },
@@ -402,7 +511,8 @@ function handleEnemies() {
             hp: Math.max(1, Math.ceil((1 + Math.floor(currentStage / 18)) * difficulty.enemyHp)),
             type: chosenType.type,
             colors: { base: chosenType.base, high: chosenType.high, accent: chosenType.accent },
-            pattern: chosenPattern, angle: Math.random() * Math.PI * 2
+            pattern: chosenPattern, angle: Math.random() * Math.PI * 2,
+            phaseSpeed: 0.05 + Math.min(.05, currentStage * .0008)
         });
     }
 }
@@ -429,6 +539,7 @@ function spawnBoss() {
 function triggerBomb() {
     if (bombs > 0 && !isPausedForBanner && !isManuallyPaused && !gameScreen.classList.contains('hidden')) {
         bombs--;
+        screenShake = 17;
         playSound('bomb');
         createParticles(canvas.width / 2, canvas.height / 2, '#3b82f6', 60);
         enemies = [];
@@ -448,6 +559,7 @@ function triggerBomb() {
 bombBtn.addEventListener('click', triggerBomb);
 
 function defeatBoss() {
+    screenShake = 20;
     score += 2500;
     createParticles(boss.x, boss.y, '#f59e0b', 50);
     boss = null;
@@ -461,12 +573,15 @@ function defeatBoss() {
     }
 
     playSound('stageUp');
+    addCombatText(canvas.width/2, 165, 'BOSS DEFEATED! +2500', '#ffcc55');
     isPausedForBanner = true;
     bannerTitle.textContent = `STAGE ${currentStage - 1} CLEAR!`;
     bannerDesc.textContent = `다음 스테이지 ${currentStage} (으)로 진입합니다.`;
     stageBanner.classList.remove('hidden');
 
-    setTimeout(() => {
+    clearTimeout(stageBannerTimeout);
+    stageBannerTimeout = setTimeout(() => {
+        if (gameScreen.classList.contains('hidden')) return;
         stageBanner.classList.add('hidden');
         isPausedForBanner = false;
         updateHUD();
@@ -575,8 +690,78 @@ function drawEnemyAircraft(x, y, type, colors) {
     ctx.restore();
 }
 
+// Layered, scrolling airspace: changing daylight and distant islands every 10 stages.
+function drawBackdrop() {
+    const phase = Math.floor((currentStage - 1) / 10) % 3;
+    const palettes = [
+        ['#43b7fa', '#b9edff', '#e8faff', '#5bbce1'],
+        ['#64b9fa', '#f8dcbb', '#fff6d6', '#73bdd3'],
+        ['#62c4c8', '#bcebdc', '#f1fcdf', '#6bb9ba']
+    ];
+    const palette = palettes[phase];
+    const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    sky.addColorStop(0, palette[0]);
+    sky.addColorStop(0.57, palette[1]);
+    sky.addColorStop(1, palette[2]);
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const sunX = canvas.width * 0.78;
+    const sunY = canvas.height * 0.14;
+    const sunGlow = ctx.createRadialGradient(sunX, sunY, 3, sunX, sunY, 180);
+    sunGlow.addColorStop(0, 'rgba(255,255,214,.72)');
+    sunGlow.addColorStop(1, 'rgba(255,255,214,0)');
+    ctx.fillStyle = sunGlow;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#fff9d5';
+    ctx.beginPath(); ctx.arc(sunX, sunY, 26, 0, Math.PI*2); ctx.fill();
+
+    // Distant sea with slow light ripples to create a sense of forward flight.
+    const waterY = canvas.height * 0.59;
+    ctx.fillStyle = palette[3] + '37';
+    ctx.fillRect(0, waterY, canvas.width, canvas.height - waterY);
+    ctx.strokeStyle = 'rgba(255,255,255,.26)';
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 11; i++) {
+        const y = waterY + ((i * 53 + frameCount * 1.1) % (canvas.height - waterY));
+        const x = ((i * 113 + Math.sin(i * 3.1) * 70) % canvas.width + canvas.width) % canvas.width;
+        ctx.beginPath(); ctx.moveTo(x - 28, y); ctx.lineTo(x + 36, y); ctx.stroke();
+    }
+
+    // Parallax islands: soft-edged shapes deliberately stay behind combat entities.
+    for (let i = 0; i < 5; i++) {
+        const x = 55 + (i * 127) % 430;
+        const y = waterY + ((i * 178 + frameCount * (0.42 + i * .09)) % (canvas.height - waterY + 180)) - 70;
+        const scale = .65 + i * .13;
+        ctx.save(); ctx.translate(x,y); ctx.rotate(Math.sin(i * 2) * .3); ctx.scale(scale, scale);
+        ctx.fillStyle = 'rgba(16, 113, 116, .11)';
+        ctx.beginPath(); ctx.ellipse(5, 9, 46, 22, 0, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = i % 2 ? '#79c7a6a0' : '#6ec8a8a0';
+        ctx.beginPath(); ctx.ellipse(0, 0, 39, 16, 0, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#fff0bd96';
+        ctx.beginPath(); ctx.ellipse(-10, -2, 18, 6, 0, 0, Math.PI*2); ctx.fill();
+        ctx.restore();
+    }
+
+    function cloud(cx, cy, scale, alpha) {
+        ctx.save(); ctx.globalAlpha = alpha; ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, 31 * scale, 13 * scale, 0, 0, Math.PI * 2);
+        ctx.ellipse(cx - 19 * scale, cy + 2 * scale, 17 * scale, 10 * scale, 0, 0, Math.PI * 2);
+        ctx.ellipse(cx + 2 * scale, cy - 8 * scale, 19 * scale, 16 * scale, 0, 0, Math.PI * 2);
+        ctx.ellipse(cx + 22 * scale, cy + 1 * scale, 18 * scale, 11 * scale, 0, 0, Math.PI * 2);
+        ctx.fill(); ctx.restore();
+    }
+    const cloudY = (offset, speed) => (offset + frameCount * speed) % (canvas.height + 180) - 90;
+    cloud(canvas.width * .16, cloudY(100,.45), .9,.48);
+    cloud(canvas.width * .82, cloudY(240,.65), 1.12,.43);
+    cloud(canvas.width * .25, cloudY(410,.3),.72,.28);
+    cloud(canvas.width * .92, cloudY(540,.52),.9,.3);
+}
+
 function updateGame() {
     if (isPausedForBanner || isManuallyPaused) return;
+    frameCount++;
 
     if (isMouseDown) {
         player.x += (mouseX - player.x) * 0.2;
@@ -594,59 +779,27 @@ function updateGame() {
 
     handleShooting();
     handleEnemies();
+    playMusicBeat();
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // 밝고 산뜻한 하늘 배경: 맑은 파란 하늘, 햇살, 부드러운 구름
-    const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    sky.addColorStop(0, '#62c8ff');
-    sky.addColorStop(0.52, '#a9e5ff');
-    sky.addColorStop(1, '#e1f8ff');
-    ctx.fillStyle = sky;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // 은은한 햇살 효과
-    const sunGlow = ctx.createRadialGradient(canvas.width * 0.78, canvas.height * 0.12, 2, canvas.width * 0.78, canvas.height * 0.12, canvas.width * 0.55);
-    sunGlow.addColorStop(0, 'rgba(255, 250, 204, 0.48)');
-    sunGlow.addColorStop(1, 'rgba(255, 250, 204, 0)');
-    ctx.fillStyle = sunGlow;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // 둥글고 부드러운 구름을 화면 가장자리에 배치해 비행 느낌을 살립니다.
-    function drawCloud(cx, cy, scale, alpha) {
-        ctx.save();
-        ctx.globalAlpha = alpha;
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.ellipse(cx, cy, 31 * scale, 13 * scale, 0, 0, Math.PI * 2);
-        ctx.ellipse(cx - 19 * scale, cy + 2 * scale, 17 * scale, 10 * scale, 0, 0, Math.PI * 2);
-        ctx.ellipse(cx + 2 * scale, cy - 8 * scale, 19 * scale, 16 * scale, 0, 0, Math.PI * 2);
-        ctx.ellipse(cx + 22 * scale, cy + 1 * scale, 18 * scale, 11 * scale, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
+    drawBackdrop();
+    if (screenShake > 0) {
+        const strength = Math.min(8, screenShake / 2);
+        canvas.style.transform = `translate(${(Math.random()-.5)*strength}px, ${(Math.random()-.5)*strength}px)`;
+        screenShake--;
+    } else if (canvas.style.transform) {
+        canvas.style.transform = '';
     }
-    drawCloud(canvas.width * 0.16, canvas.height * 0.18, 0.9, 0.48);
-    drawCloud(canvas.width * 0.82, canvas.height * 0.34, 1.12, 0.43);
-    drawCloud(canvas.width * 0.25, canvas.height * 0.67, 0.72, 0.28);
-    drawCloud(canvas.width * 0.92, canvas.height * 0.82, 0.9, 0.3);
-
-    // 아주 옅은 하늘색 비행 가이드 라인
-    ctx.save();
-    ctx.strokeStyle = 'rgba(255,255,255,0.24)';
-    ctx.lineWidth = 1;
-    for (let gy = 36; gy < canvas.height; gy += 52) {
-        ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(canvas.width, gy); ctx.stroke();
-    }
-    ctx.restore();
 
     // 파티클 렌더링
-    particles.forEach((p, idx) => {
+    for (let idx = particles.length - 1; idx >= 0; idx--) {
+        const p = particles[idx];
         p.x += p.vx;
         p.y += p.vy;
         p.alpha -= p.decay;
         if (p.alpha <= 0) {
             particles.splice(idx, 1);
-            return;
+            continue;
         }
         ctx.save();
         ctx.globalAlpha = p.alpha;
@@ -655,10 +808,11 @@ function updateGame() {
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
-    });
+    }
 
     // 플레이어 총알
-    bullets.forEach((b, index) => {
+    for (let index = bullets.length - 1; index >= 0; index--) {
+        const b = bullets[index];
         b.y += b.vy;
         if (b.vx) b.x += b.vx;
         ctx.fillStyle = b.color;
@@ -667,10 +821,11 @@ function updateGame() {
         ctx.fill();
 
         if (b.y < 0) bullets.splice(index, 1);
-    });
+    }
 
     // 유도탄: 가장 가까운 적/보스를 추적하고 폭발 피해를 줍니다.
-    missiles.forEach((m, index) => {
+    for (let index = missiles.length - 1; index >= 0; index--) {
+        const m = missiles[index];
         let target = boss;
         let bestDistance = boss ? Math.hypot(boss.x - m.x, boss.y - m.y) : Infinity;
         enemies.forEach(enemy => {
@@ -707,19 +862,19 @@ function updateGame() {
                 if (Math.hypot(m.x - enemy.x, m.y - enemy.y) < 27) {
                     enemy.hp -= m.damage; createParticles(m.x, m.y, '#ffbd68', 14); hit = true;
                     if (enemy.hp <= 0) {
-                        createParticles(enemy.x, enemy.y, '#f59e0b', 18); enemies.splice(ei, 1);
-                        kills++; combo++; comboTimer = 150; bestCombo = Math.max(bestCombo, combo);
-                        score += 200 + Math.min(500, combo * 10); stageScore += 150; updateHUD();
+                        enemies.splice(ei, 1);
+                        awardEnemyKill(enemy);
                     }
                     break;
                 }
             }
         }
         if (hit || m.y < -30 || m.x < -30 || m.x > canvas.width+30 || m.y > canvas.height+30) missiles.splice(index, 1);
-    });
+    }
 
     // 적 탄막 총알
-    enemyBullets.forEach((eb, index) => {
+    for (let index = enemyBullets.length - 1; index >= 0; index--) {
+        const eb = enemyBullets[index];
         eb.x += eb.vx;
         eb.y += eb.vy;
         ctx.fillStyle = eb.color;
@@ -731,6 +886,7 @@ function updateGame() {
         if (hitCooldown <= 0 && Math.hypot(player.x - eb.x, player.y - eb.y) < 20) {
             enemyBullets.splice(index, 1);
             playSound('hit');
+            screenShake = 9;
             createParticles(player.x, player.y, '#ef4444', 10);
             hitCooldown = 70;
             if (player.shield && shieldHits > 0) {
@@ -739,14 +895,14 @@ function updateGame() {
             } else {
                 lives--;
                 updateHUD();
-                if (lives <= 0) gameOver();
+                if (lives <= 0) { gameOver(); return; }
             }
         }
 
         if (eb.y > canvas.height + 20 || eb.y < -20 || eb.x < -20 || eb.x > canvas.width + 20) {
-            enemyBullets.splice(index, 1);
+            if (enemyBullets[index] === eb) enemyBullets.splice(index, 1);
         }
-    });
+    }
 
     // 보스
     if (boss) {
@@ -769,6 +925,7 @@ function updateGame() {
 
         if (hitCooldown <= 0 && Math.hypot(player.x - boss.x, player.y - boss.y) < 50) {
             playSound('hit');
+            screenShake = 9;
             hitCooldown = 70;
             if (player.shield && shieldHits > 0) {
                 shieldHits--;
@@ -776,11 +933,12 @@ function updateGame() {
             } else {
                 lives--;
                 updateHUD();
-                if (lives <= 0) gameOver();
+                if (lives <= 0) { gameOver(); return; }
             }
         }
 
-        bullets.forEach((b, bIndex) => {
+        for (let bIndex = bullets.length - 1; bIndex >= 0 && boss; bIndex--) {
+            const b = bullets[bIndex];
             if (boss && Math.hypot(b.x - boss.x, b.y - boss.y) < 45) {
                 bullets.splice(bIndex, 1);
                 boss.hp -= (1 + Math.floor(power / 2));
@@ -789,11 +947,12 @@ function updateGame() {
                     defeatBoss();
                 }
             }
-        });
+        }
     }
 
     // 일반 적
-    enemies.forEach((enemy, eIndex) => {
+    for (let eIndex = enemies.length - 1; eIndex >= 0; eIndex--) {
+        const enemy = enemies[eIndex];
         enemy.y += enemy.speed;
         
         if (enemy.pattern === 'wave') {
@@ -805,12 +964,32 @@ function updateGame() {
         } else if (enemy.pattern === 'dive') {
             if (enemy.y > 200 && enemy.x < player.x) enemy.x += 1.5;
             if (enemy.y > 200 && enemy.x > player.x) enemy.x -= 1.5;
+        } else if (enemy.pattern === 'swoop') {
+            enemy.angle += enemy.phaseSpeed;
+            enemy.x = enemy.startX + Math.sin(enemy.angle) * (45 + Math.min(45, currentStage));
+        } else if (enemy.pattern === 'orbit') {
+            enemy.angle += enemy.phaseSpeed;
+            enemy.x = enemy.startX + Math.sin(enemy.angle * 1.3) * 90;
+            enemy.y += Math.cos(enemy.angle) * .8;
+        }
+        enemy.x = Math.max(25, Math.min(canvas.width-25, enemy.x));
+
+        // From stage 3 onward, small aircraft occasionally fire aimed shots.
+        if (currentStage >= 3 && enemy.y > 35 && enemy.y < player.y - 90 && enemyBullets.length < 48) {
+            const fireChance = (selectedDifficulty === 'easy' ? .0018 : selectedDifficulty === 'hard' ? .006 : .0033)
+                * Math.min(1.7, 1 + currentStage / 65);
+            if (Math.random() < fireChance) {
+                const angle = Math.atan2(player.y-enemy.y, player.x-enemy.x);
+                const speed = 2.5 * getDifficulty().bulletSpeed;
+                enemyBullets.push({x:enemy.x,y:enemy.y+9,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,size:4.5,color:'#d3465b'});
+            }
         }
 
         drawEnemyAircraft(enemy.x, enemy.y, enemy.type || 'interceptor', enemy.colors || {base:'#a44d4a', high:'#f2b5a1', accent:'#f4cf9b'});
 
         if (hitCooldown <= 0 && Math.hypot(player.x - enemy.x, player.y - enemy.y) < 28) {
             playSound('hit');
+            screenShake = 9;
             createParticles(enemy.x, enemy.y, '#ef4444', 15);
             enemies.splice(eIndex, 1);
             hitCooldown = 70;
@@ -820,53 +999,33 @@ function updateGame() {
             } else {
                 lives--;
                 updateHUD();
-                if (lives <= 0) gameOver();
+                if (lives <= 0) { gameOver(); return; }
             }
+            continue;
         }
 
-        bullets.forEach((b, bIndex) => {
+        for (let bIndex = bullets.length - 1; bIndex >= 0; bIndex--) {
+            const b = bullets[bIndex];
             if (Math.hypot(b.x - enemy.x, b.y - enemy.y) < 26) {
                 bullets.splice(bIndex, 1);
                 enemy.hp -= (1 + Math.floor(power / 3));
                 createParticles(b.x, b.y, '#60a5fa', 5);
                 if (enemy.hp <= 0) {
-                    createParticles(enemy.x, enemy.y, '#f59e0b', 18);
                     enemies.splice(eIndex, 1);
-                    kills++; combo++; comboTimer = 150; bestCombo = Math.max(bestCombo, combo);
-                    score += 150 + Math.min(500, combo * 10);
-                    stageScore += 150;
-                    updateHUD();
-
-                    // 쉬움 난이도는 아이템 드롭률을 높이고, 추가 목숨이 더 자주 나오게 한다.
-                    const easyMode = selectedDifficulty === 'easy';
-                    const itemDropChance = easyMode ? 0.68 : 0.40;
-                    if (Math.random() < itemDropChance) {
-                        const lifeItem = { type: 'life', boxColor: '#c84b59', ribbonColor: '#ffe0e4', name: '추가 목숨 +1', symbol: '+' };
-                        const otherItemTypes = [
-                            { type: 'shield', boxColor: '#168b91', ribbonColor: '#b9fbff', name: '방어막 충전', symbol: 'S' },
-                            { type: 'missile', boxColor: '#d17a32', ribbonColor: '#ffe0a6', name: '유도탄 +3', symbol: 'M' },
-                            { type: 'coin', boxColor: '#b28b3c', ribbonColor: '#fff0b3', name: '무장 확장', symbol: 'W' },
-                            { type: 'power', boxColor: '#bd5149', ribbonColor: '#ffd0b8', name: '파워 업', symbol: 'P' },
-                            { type: 'bomb', boxColor: '#2876a0', ribbonColor: '#bae6fd', name: '폭탄 충전', symbol: 'B' },
-                            { type: 'bonus', boxColor: '#a9852b', ribbonColor: '#fef08a', name: '보너스 점수', symbol: '+' }
-                        ];
-                        // 쉬움: 아이템이 나왔다면 35% 확률로 추가 목숨, 나머지는 다른 아이템.
-                        const chosen = easyMode && Math.random() < 0.35
-                            ? lifeItem
-                            : otherItemTypes[Math.floor(Math.random() * otherItemTypes.length)];
-                        items.push({ x: enemy.x, y: enemy.y, vy: 1.45, phase: Math.random() * Math.PI * 2, ...chosen });
-                    }
+                    awardEnemyKill(enemy);
+                    break;
                 }
             }
-        });
+        }
 
-        if (enemy.y > canvas.height + 40) {
+        if (enemies[eIndex] === enemy && enemy.y > canvas.height + 40) {
             enemies.splice(eIndex, 1);
         }
-    });
+    }
 
     // 아이템
-    items.forEach((item, iIndex) => {
+    for (let iIndex = items.length - 1; iIndex >= 0; iIndex--) {
+        const item = items[iIndex];
         item.y += item.vy;
         item.phase = (item.phase || 0) + 0.06;
         const bobY = Math.sin(item.phase) * 2;
@@ -886,6 +1045,14 @@ function updateGame() {
 
         if (Math.hypot(player.x - item.x, player.y - item.y) < 28) {
             playSound('item');
+            pickupCount++;
+            addCombatText(item.x, item.y - 16, item.name, '#fff9d5');
+            if (pickupNotice) {
+                pickupNotice.textContent = item.name;
+                pickupNotice.classList.remove('hidden');
+                clearTimeout(pickupNoticeTimeout);
+                pickupNoticeTimeout = setTimeout(() => pickupNotice.classList.add('hidden'), 1100);
+            }
             createParticles(item.x, item.y, '#38bdf8', 12);
             items.splice(iIndex, 1);
             if (item.type === 'life') {
@@ -911,10 +1078,10 @@ function updateGame() {
             updateHUD();
         }
 
-        if (item.y > canvas.height + 40) {
+        if (items[iIndex] === item && item.y > canvas.height + 40) {
             items.splice(iIndex, 1);
         }
-    });
+    }
 
     let pColor = getPlaneColor(selectedPlaneType);
     if (hitCooldown === 0 || Math.floor(hitCooldown / 5) % 2 === 0) drawAircraft(player.x, player.y, 1.0, pColor, false, selectedPlaneType);
@@ -936,6 +1103,16 @@ function updateGame() {
 
         ctx.strokeStyle = '#f1dca8'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(canvas.width/2, canvas.height/2, (55-bombEffectTimer)*5, 0, Math.PI*2); ctx.stroke();
         ctx.fillStyle = '#f1dca8'; ctx.font = 'bold 15px Orbitron, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('TACTICAL STRIKE', canvas.width / 2, canvas.height / 2);
+    }
+
+    for (let i = combatTexts.length - 1; i >= 0; i--) {
+        const t = combatTexts[i];
+        t.y += t.vy; t.opacity -= .018;
+        if (t.opacity <= 0) { combatTexts.splice(i,1); continue; }
+        ctx.save(); ctx.globalAlpha = t.opacity; ctx.font = '800 14px Noto Sans KR, sans-serif';
+        ctx.textAlign = 'center'; ctx.lineWidth = 3.5; ctx.strokeStyle = '#194c69';
+        ctx.strokeText(t.label, t.x, t.y); ctx.fillStyle = t.color; ctx.fillText(t.label, t.x, t.y);
+        ctx.restore();
     }
 }
 
@@ -1069,6 +1246,8 @@ function endMissionEarly() {
     if (gameScreen.classList.contains('hidden')) return;
     const shouldEnd = window.confirm('현재 작전을 종료하고 결과 화면으로 돌아갈까요? 지금까지의 점수는 결과 화면에서 랭킹에 등록할 수 있습니다.');
     if (!shouldEnd) return;
+    clearTimeout(stageBannerTimeout);
+    clearTimeout(pickupNoticeTimeout);
     clearInterval(gameInterval);
     isManuallyPaused = false;
     isPausedForBanner = false;
@@ -1089,6 +1268,8 @@ function endMissionEarly() {
 function gameOver() {
     if (gameScreen.classList.contains('hidden')) return;
     playSound('hit');
+    clearTimeout(stageBannerTimeout);
+    clearTimeout(pickupNoticeTimeout);
     clearInterval(gameInterval);
     gameScreen.classList.add('hidden');
     gameOverScreen.classList.remove('hidden');
@@ -1102,6 +1283,8 @@ function gameOver() {
 }
 
 function gameClear() {
+    clearTimeout(stageBannerTimeout);
+    clearTimeout(pickupNoticeTimeout);
     clearInterval(gameInterval);
     gameScreen.classList.add('hidden');
     gameOverScreen.classList.remove('hidden');

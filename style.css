@@ -60,6 +60,10 @@ button:focus-visible,.plane-card:focus-visible{outline:2px solid var(--cyan);out
 @media(max-width:420px){#hud{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:7px}#hud .hud-item:nth-child(3){border-right:0}.hangar-tip{font-size:8px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
 
+/* Item pickup feedback stays above the game canvas on all screen sizes. */
+#pickup-notice{position:absolute;top:16%;left:50%;transform:translateX(-50%);z-index:8;pointer-events:none;white-space:nowrap;max-width:90%;padding:9px 18px;border-radius:999px;background:#083d58df;color:#fff8c7;border:2px solid #a6e8ed;font:800 14px 'Noto Sans KR',sans-serif;box-shadow:0 9px 24px #10445b55;animation:pickup-pop .2s ease-out}
+@keyframes pickup-pop{from{opacity:0;transform:translate(-50%,12px) scale(.9)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
+
 /* Difficulty selector on the launch screen */
 .difficulty-panel{width:100%;margin:-5px 0 13px;padding:10px 11px 11px;border:1px solid #344757;background:linear-gradient(135deg,#101d29cc,#070d14cc)}
 .difficulty-heading{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;color:#d7b875;font-size:10px;letter-spacing:.08em}
@@ -155,3 +159,54 @@ html,body{background:radial-gradient(ellipse at 50% 0%,#ffffff 0%,#c8efff 46%,#a
 .ranking-list li{border-bottom-color:#c5e7f4;color:#244d66}
 .rank-place{color:#b87500}.rank-sub{color:#52778d}.rank-meta{color:#a56700}
 #stage-progress{background:#c5eaf8}#stage-progress-fill{background:linear-gradient(90deg,#16b8e8,#ffbd3d);box-shadow:0 0 8px #16b8e855}
+
+/* Aerial Legends premium visual pass */
+html,body{background:radial-gradient(circle at 50% -20%,#fffef4 0%,#c5effc 47%,#8fd0ed 100%)}
+#game-wrapper{height:min(920px,calc(100dvh - 24px));min-height:0;border-radius:20px;border:3px solid #ebfcff;box-shadow:0 22px 65px #1f72994a,0 0 0 1px #8dd4ec;}
+#game-wrapper:before{border:1px solid #ffffffa8;border-radius:15px;inset:5px;z-index:2}
+#start-screen{justify-content:flex-start;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;padding:48px 24px 28px;gap:0;background:radial-gradient(ellipse at 52% -12%,#fffceb 0%,#dcf6ff 53%,#c7eaff 100%)}
+#start-screen:before{content:'';position:absolute;pointer-events:none;top:28px;left:50%;width:270px;height:270px;transform:translateX(-50%);border-radius:50%;background:repeating-radial-gradient(circle,#ffffff8c 0 2px,transparent 2px 42px);mask-image:linear-gradient(#000,transparent);}
+#start-screen:after{top:14px;font-size:8px;letter-spacing:.15em}
+.edition-label{position:relative;z-index:1;display:flex;align-items:center;gap:8px;padding:6px 12px;margin:0 auto 10px;border-radius:100px;background:#ffffffbc;border:1px solid #a5dff7;color:#3688b2;font:800 9px 'Orbitron',sans-serif;letter-spacing:.1em;box-shadow:0 3px 12px #378fc21a}
+.edition-label span{color:#dd8a04}
+.title-glow{position:relative;z-index:1;font-size:clamp(1.55rem,5vw,2.05rem);font-weight:800;letter-spacing:.04em;margin-bottom:7px;line-height:1.25;color:#135a9a;text-shadow:0 3px #ffffff,0 6px 13px #5499bb66}
+.title-glow span{color:#f0a022;text-shadow:0 2px #fff5d7,0 6px 13px #e7ab5890}
+#start-screen>p{position:relative;z-index:1;margin:0 0 15px;font-size:.76rem;line-height:1.5;color:#386c8b}
+.subtitle-en{font-size:9px;letter-spacing:.1em;margin-top:5px;color:#177cb1}
+.selection-container{gap:9px;margin-bottom:13px}
+.plane-card{border:1px solid #a1d9ef;border-radius:15px;padding:13px 10px 11px;min-height:130px;box-shadow:0 4px 12px #347da217;transition:transform .15s,background .2s,box-shadow .2s,border-color .2s}
+.plane-card:nth-child(5){min-height:120px}
+.plane-card.selected{border:2px solid #f1af34;background:linear-gradient(155deg,#fff9e6 0%,#e0f7ff 100%);box-shadow:0 8px 22px #e9ae4a35,0 0 0 3px #ffdc7a33}
+.plane-card.selected:after{content:'✓ SELECTED';font-size:8px;right:11px;top:9px;color:#b4740c}
+.plane-icon{display:grid;place-items:center;width:44px;height:44px;margin:0 auto 7px;background:linear-gradient(135deg,#e1f8ff,#b6e5f6);color:#176f9a;border:1px solid #c7eaf8;border-radius:15px;font-size:1.6rem;filter:none;text-shadow:0 2px 3px #ffffff}
+.plane-card.selected .plane-icon{background:linear-gradient(135deg,#fff1bd,#ffe2a1);color:#a16e11;border-color:#f9d07d}
+.plane-card h3{font-size:.78rem;margin:2px 0 4px;color:#205876}
+.plane-card p{font-size:.65rem}
+.plane-special{display:inline-block;margin-top:8px;padding:3px 8px;border-radius:100px;background:#d5f0fb;color:#267a9e;font-size:9px;font-weight:800}
+.plane-card.selected .plane-special{background:#ffe5a4;color:#9a6710}
+.difficulty-panel{border-radius:14px;padding:10px 12px;margin:0 0 10px;background:#ffffffbb;box-shadow:0 3px 13px #368fc415}
+.difficulty-card{border-radius:10px;padding:9px 4px}.difficulty-card.selected{background:#fff0bb;box-shadow:0 0 0 2px #ffe1a88c}
+.mission-note{margin-bottom:10px;border-radius:10px;border:1px solid #b5e2f0;background:#f6fcffbd;flex-wrap:wrap;justify-content:center;row-gap:3px;font-size:9px}
+#start-btn{width:min(100%,320px);border-radius:15px;padding:15px 22px;background:linear-gradient(180deg,#ffe381,#ffbd38);box-shadow:0 7px 0 #d59a27,0 12px 20px #da9b3044;font-size:.9rem;margin-top:5px}
+#start-btn:hover{box-shadow:0 6px 0 #d59a27,0 11px 20px #da9b3044}
+.hangar-tip{margin:2px 0 6px}
+#hud{grid-template-columns:repeat(4,minmax(0,1fr));padding:8px 8px;row-gap:6px;background:linear-gradient(#e9faff,#b6e8fa);color:#255874;border-bottom:2px solid #7bc5e4;font-size:.61rem}
+#hud .hud-item{font-weight:800;border-right:1px solid #99cfe1;padding:4px 2px}
+#hud .hud-item:nth-child(4n){border-right:0}
+#hud span{font-variant-numeric:tabular-nums;color:#af7100;font-weight:900}
+#stage-progress{height:7px;background:#b0e1f0}
+#stage-progress-fill{border-radius:0 5px 5px 0;background:linear-gradient(90deg,#19a5e8,#3ed0d0,#ffbd3d)}
+#gameCanvas{cursor:crosshair}
+#controls-panel{padding:10px 10px;gap:7px}
+.utility-btn{border-radius:11px;min-height:45px;box-shadow:0 3px 7px #508da51f}
+#bomb-btn{border-radius:11px;box-shadow:0 4px 11px #ea765347;font-weight:900}
+#stage-banner{border:2px solid #ffc14b;border-radius:23px;box-shadow:0 17px 35px #26749c44;animation:banner-pop .25s ease-out}
+#banner-title{font-weight:900;color:#c98512}
+@keyframes banner-pop{from{opacity:0;transform:translate(-50%,-44%) scale(.87)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+.pause-card,.online-ranking{border-radius:20px}
+#gameover-screen{padding-top:55px;justify-content:flex-start;scrollbar-width:thin}
+#gameover-title{text-shadow:0 2px #fff}
+#restart-btn{border-radius:12px;min-height:44px}
+@media(max-width:480px){body{padding:0}#game-wrapper{height:100dvh;width:100%;border:0;border-radius:0;box-shadow:none}#start-screen{padding:43px 13px 18px}.plane-card{min-height:118px;padding:9px 7px}.plane-card:nth-child(5){min-height:108px}.plane-icon{height:36px;width:36px;font-size:1.4rem;border-radius:12px}.plane-special{font-size:8px;margin-top:5px}.title-glow{font-size:clamp(1.4rem,6vw,1.8rem)}#hud{font-size:.56rem;padding:6px 4px;row-gap:3px}#controls-panel{padding:7px;gap:5px}#controls-panel .utility-btn{min-height:40px}#bomb-btn{font-size:.71rem}}
+@media(max-height:700px){#start-screen{padding-top:40px}.plane-card{min-height:107px;padding:8px 6px}.selection-container{gap:7px;margin-bottom:8px}.difficulty-panel{padding:7px 10px}.hangar-tip{display:none}}
+@media(prefers-reduced-motion:reduce){#stage-banner{animation:none!important}}
