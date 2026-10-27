@@ -89,3 +89,69 @@ button:focus-visible,.plane-card:focus-visible{outline:2px solid var(--cyan);out
 .rank-meta{color:#91a4b6;font-size:10px;text-align:right}
 #gameover-screen{overflow-y:auto}
 @media(max-height:760px){.online-ranking{padding:8px 10px;margin-bottom:9px}.ranking-list{max-height:120px}.online-ranking h3{margin-bottom:7px}}
+
+
+/* Quit control and expanded leaderboard details */
+.quit-btn{border-color:#8a4b4b;color:#ffc5bd}
+.quit-btn:hover{border-color:#ff8276;color:#ffb0a5;background:#291719}
+.ranking-list li.ranking-row{grid-template-columns:25px minmax(0,1fr) auto;align-items:center;gap:7px;padding:8px 3px}
+.rank-details{display:flex;min-width:0;flex-direction:column;gap:3px}
+.rank-name{display:block;max-width:100%;font-size:11px}
+.rank-sub{display:block;color:#8196a7;font-size:9px;line-height:1.35;overflow-wrap:anywhere}
+.rank-meta{color:#f1dca8;font:700 10px 'Orbitron','Noto Sans KR',sans-serif;white-space:nowrap}
+#controls-panel{flex-wrap:nowrap}
+@media(max-width:420px){.quit-btn{min-width:43px!important}.quit-btn span{font-size:6px}.rank-sub{font-size:8px}.ranking-list li.ranking-row{grid-template-columns:22px minmax(0,1fr) auto;gap:5px}}
+
+
+/* CHILD-FRIENDLY BRIGHT SKY THEME */
+:root{--bg:#eaf8ff;--panel:#f7fcff;--line:#9bd7f3;--gold:#ffb72b;--cyan:#078bd1;--muted:#476b82;--white:#17364b}
+html,body{background:radial-gradient(ellipse at 50% 0%,#ffffff 0%,#c8efff 46%,#a8dcf5 100%);color:#17364b}
+#game-wrapper{background:linear-gradient(145deg,#f4fcff,#dff5ff);border:2px solid #8fd5f5;box-shadow:0 18px 45px #418eb533,inset 0 1px #ffffff}
+#game-wrapper:before{border-color:#ffffff99}
+#start-screen{background:linear-gradient(180deg,#e7f8ffef,#f8fdfff7),repeating-linear-gradient(0deg,transparent 0 35px,#ffffff45 36px)}
+.title-glow{color:#176caa;text-shadow:0 2px 0 #ffffff,0 0 18px #8bdcff77}
+#start-screen:after{color:#4b8eb2}
+#start-screen>p{color:#456f89}
+.plane-card{background:linear-gradient(145deg,#ffffffed,#d9f3ff);border-color:#a1d8f1;box-shadow:0 3px 10px #4c9cc51a}
+.plane-card:before{background:linear-gradient(120deg,transparent,#ffffff88,transparent)}
+.plane-card:hover,.plane-card.selected{border-color:#ffb72b;background:linear-gradient(145deg,#fff8dc,#d8f3ff);box-shadow:inset 0 0 0 1px #ffcf5a55,0 6px 16px #4c9cc522}
+.plane-card.selected:after{color:#c47a00}
+.plane-card h3{color:#174b6a}.plane-card p{color:#52778d}
+.subtitle-en{color:#2083b7}
+.mission-note{border-color:#b3e2f5;color:#527c94}.mission-note span:first-child{color:#bd7a00}
+.difficulty-panel{border-color:#b2e0f2;background:linear-gradient(135deg,#ffffffdd,#dff5ffdd)}
+.difficulty-heading{color:#a66b00}.difficulty-heading span:first-child{color:#4b8eb2}
+.difficulty-card{background:#f8fdff;border-color:#b0dcec;color:#21465e}
+.difficulty-card small{color:#52778d}
+.difficulty-card:hover,.difficulty-card.selected{border-color:#ffb72b;background:#fff4ce;box-shadow:inset 0 0 0 1px #ffcf5a55}
+.difficulty-card.selected strong{color:#9b6100}
+.glow-btn{background:linear-gradient(180deg,#ffe18a,#ffbd3d);border-color:#ffdf80;color:#4e3700;box-shadow:0 5px 18px #f5b83d33}
+#game-screen{background:#bdeaff}
+#hud{background:linear-gradient(180deg,#eaf9ff,#c9efff);border-bottom-color:#8fd2ef;color:#28556f}
+#hud .hud-item{border-right-color:#a8d9ee}#hud span{color:#c07900}
+#canvas-container{background:#a9e5ff}
+#gameCanvas{background:linear-gradient(#62c8ff,#e1f8ff)}
+#stage-banner{background:linear-gradient(145deg,#fffffffa,#e4f8fffa);border-color:#ffbd3d;box-shadow:0 12px 35px #347fa633}
+#banner-title{color:#b87500}#banner-desc{color:#3f6b84}
+#controls-panel{background:#e8f8ff;border-top-color:#9bd7f3}
+.utility-btn{background:#ffffff;border-color:#9dcfe5;color:#24536e}
+.utility-btn span{color:#56829a}
+.utility-btn:hover,.utility-btn[aria-pressed="true"]{border-color:#ffbd3d;color:#a66b00}
+.quit-btn{border-color:#e5a29b;color:#b83e35;background:#fff6f4}
+.quit-btn:hover{border-color:#d94d42;color:#a72d24;background:#ffe9e6}
+#bomb-btn{background:linear-gradient(180deg,#ff977c,#f06b58);border-color:#e85e50;color:#ffffff}
+#pause-overlay{background:#dff6ffcc}
+.pause-card{background:linear-gradient(145deg,#ffffff,#e1f6ff);border-color:#ffbd3d;box-shadow:0 15px 45px #347fa633}
+.pause-card .eyebrow{color:#b87500}.pause-card h2{color:#174b6a}.pause-card p{color:#52778d}
+.record-line{color:#4b7b95!important}#best-score{color:#b87500}
+#gameover-screen{background:radial-gradient(ellipse at 50% 25%,#ffffff,#d9f4ff 78%)}
+#gameover-screen h2{color:#b87500}#gameover-screen p{color:#456f89}#final-score{color:#176caa}
+.hangar-tip{color:#527c94}
+.online-ranking{border-color:#a9dced;background:linear-gradient(145deg,#ffffffed,#e3f7ffed);box-shadow:inset 0 0 18px #55b9e60a}
+.online-ranking h3{color:#b87500}
+#rank-nickname{background:#ffffff;border-color:#9dcfe5;color:#17364b}
+#rank-nickname::placeholder{color:#7193a7}
+.rank-status{color:#52778d!important}
+.ranking-list li{border-bottom-color:#c5e7f4;color:#244d66}
+.rank-place{color:#b87500}.rank-sub{color:#52778d}.rank-meta{color:#a56700}
+#stage-progress{background:#c5eaf8}#stage-progress-fill{background:linear-gradient(90deg,#16b8e8,#ffbd3d);box-shadow:0 0 8px #16b8e855}

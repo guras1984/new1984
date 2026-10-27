@@ -7,6 +7,7 @@ const bombBtn = document.getElementById('bomb-btn');
 const pauseBtn = document.getElementById('pause-btn');
 const resumeBtn = document.getElementById('resume-btn');
 const soundBtn = document.getElementById('sound-btn');
+const quitBtn = document.getElementById('quit-btn');
 const pauseOverlay = document.getElementById('pause-overlay');
 const bestScoreEl = document.getElementById('best-score');
 const stageProgressFill = document.getElementById('stage-progress-fill');
@@ -595,21 +596,48 @@ function updateGame() {
     handleEnemies();
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // Deep-night flight grid and subtle radar lanes, inspired by 1980s arcade cabinets.
-    ctx.save(); ctx.strokeStyle='rgba(130,190,220,0.055)'; ctx.lineWidth=1;
-    for(let gy=30; gy<canvas.height; gy+=48){ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(canvas.width,gy);ctx.stroke();}
-    for(let gx=24; gx<canvas.width; gx+=48){ctx.beginPath();ctx.moveTo(gx,0);ctx.lineTo(gx,canvas.height);ctx.stroke();}
-    ctx.strokeStyle='rgba(215,184,117,0.16)';ctx.beginPath();ctx.moveTo(12,0);ctx.lineTo(12,canvas.height);ctx.moveTo(canvas.width-12,0);ctx.lineTo(canvas.width-12,canvas.height);ctx.stroke();ctx.restore();
-    // 우주/하늘 배경 별 렌더링
-    stars.forEach(star => {
-        star.y += star.speed;
-        if (star.y > canvas.height) star.y = 0;
-        ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha})`;
+
+    // 밝고 산뜻한 하늘 배경: 맑은 파란 하늘, 햇살, 부드러운 구름
+    const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    sky.addColorStop(0, '#62c8ff');
+    sky.addColorStop(0.52, '#a9e5ff');
+    sky.addColorStop(1, '#e1f8ff');
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 은은한 햇살 효과
+    const sunGlow = ctx.createRadialGradient(canvas.width * 0.78, canvas.height * 0.12, 2, canvas.width * 0.78, canvas.height * 0.12, canvas.width * 0.55);
+    sunGlow.addColorStop(0, 'rgba(255, 250, 204, 0.48)');
+    sunGlow.addColorStop(1, 'rgba(255, 250, 204, 0)');
+    ctx.fillStyle = sunGlow;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 둥글고 부드러운 구름을 화면 가장자리에 배치해 비행 느낌을 살립니다.
+    function drawCloud(cx, cy, scale, alpha) {
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = '#ffffff';
         ctx.beginPath();
-        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+        ctx.ellipse(cx, cy, 31 * scale, 13 * scale, 0, 0, Math.PI * 2);
+        ctx.ellipse(cx - 19 * scale, cy + 2 * scale, 17 * scale, 10 * scale, 0, 0, Math.PI * 2);
+        ctx.ellipse(cx + 2 * scale, cy - 8 * scale, 19 * scale, 16 * scale, 0, 0, Math.PI * 2);
+        ctx.ellipse(cx + 22 * scale, cy + 1 * scale, 18 * scale, 11 * scale, 0, 0, Math.PI * 2);
         ctx.fill();
-    });
+        ctx.restore();
+    }
+    drawCloud(canvas.width * 0.16, canvas.height * 0.18, 0.9, 0.48);
+    drawCloud(canvas.width * 0.82, canvas.height * 0.34, 1.12, 0.43);
+    drawCloud(canvas.width * 0.25, canvas.height * 0.67, 0.72, 0.28);
+    drawCloud(canvas.width * 0.92, canvas.height * 0.82, 0.9, 0.3);
+
+    // 아주 옅은 하늘색 비행 가이드 라인
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,0.24)';
+    ctx.lineWidth = 1;
+    for (let gy = 36; gy < canvas.height; gy += 52) {
+        ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(canvas.width, gy); ctx.stroke();
+    }
+    ctx.restore();
 
     // 파티클 렌더링
     particles.forEach((p, idx) => {
@@ -955,17 +983,27 @@ function renderRanking(rows) {
     }
     rows.slice(0, 10).forEach((row, index) => {
         const li = document.createElement('li');
+        li.className = 'ranking-row';
         const place = document.createElement('span');
         place.className = 'rank-place';
         place.textContent = `${index + 1}.`;
+        const details = document.createElement('div');
+        details.className = 'rank-details';
         const name = document.createElement('span');
         name.className = 'rank-name';
         name.textContent = String(row.nickname || '조종사').slice(0, 12);
+        const sub = document.createElement('span');
+        sub.className = 'rank-sub';
+        const difficultyLabels = { easy: '쉬움', normal: '보통', hard: '어려움' };
+        const planeLabels = { standard: 'FALCON', jet: 'VIPER', propeller: 'WRAITH', cruiser: 'PHANTOM', copter: 'AEGIS' };
+        const stageValue = Math.max(1, Number(row.stage || 1));
+        const killsValue = Math.max(0, Number(row.kills || 0));
+        sub.textContent = `${difficultyLabels[row.difficulty] || '보통'} · ${planeLabels[row.plane] || String(row.plane || 'FALCON')} · STAGE ${stageValue} · 격추 ${killsValue}`;
+        details.append(name, sub);
         const meta = document.createElement('span');
         meta.className = 'rank-meta';
-        const difficultyLabels = { easy: '쉬움', normal: '보통', hard: '어려움' };
-        meta.textContent = `${difficultyLabels[row.difficulty] || '보통'} · ${Number(row.score || 0).toLocaleString('ko-KR')}`;
-        li.append(place, name, meta);
+        meta.textContent = `${Number(row.score || 0).toLocaleString('ko-KR')}점`;
+        li.append(place, details, meta);
         rankingListEl.appendChild(li);
     });
 }
@@ -1027,6 +1065,27 @@ if (rankNicknameEl) {
 }
 if (submitRankBtn) submitRankBtn.addEventListener('click', submitOnlineScore);
 
+function endMissionEarly() {
+    if (gameScreen.classList.contains('hidden')) return;
+    const shouldEnd = window.confirm('현재 작전을 종료하고 결과 화면으로 돌아갈까요? 지금까지의 점수는 결과 화면에서 랭킹에 등록할 수 있습니다.');
+    if (!shouldEnd) return;
+    clearInterval(gameInterval);
+    isManuallyPaused = false;
+    isPausedForBanner = false;
+    pauseOverlay.classList.add('hidden');
+    stageBanner.classList.add('hidden');
+    gameScreen.classList.add('hidden');
+    gameOverScreen.classList.remove('hidden');
+    gameOverTitle.textContent = 'MISSION ENDED';
+    gameOverTitle.style.color = '#d7b875';
+    finalScoreEl.textContent = score.toLocaleString('ko-KR');
+    if (finalComboEl) finalComboEl.textContent = bestCombo;
+    if (finalKillsEl) finalKillsEl.textContent = kills;
+    saveBestScore();
+    if (rankStatusEl) rankStatusEl.textContent = '작전이 종료되었습니다. 닉네임을 입력해 현재 점수를 등록할 수 있어요.';
+    loadOnlineRanking();
+}
+
 function gameOver() {
     if (gameScreen.classList.contains('hidden')) return;
     playSound('hit');
@@ -1066,5 +1125,6 @@ function saveBestScore() {
 pauseBtn.addEventListener('click', togglePause);
 resumeBtn.addEventListener('click', () => setPaused(false));
 soundBtn.addEventListener('click', toggleSound);
+if (quitBtn) quitBtn.addEventListener('click', endMissionEarly);
 startBtn.addEventListener('click', startGame);
 restartBtn.addEventListener('click', startGame);
