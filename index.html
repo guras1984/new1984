@@ -40,6 +40,14 @@
                     <p>실드 강화 · 생존 특화</p>
                 </div>
             </div>
+            <section class="difficulty-panel" aria-label="난이도 선택">
+                <div class="difficulty-heading"><span>MISSION PARAMETERS</span><span>난이도 선택</span></div>
+                <div class="difficulty-options">
+                    <button type="button" class="difficulty-card" data-difficulty="easy" aria-pressed="false"><strong>쉬움</strong><small>생존 중심 · 목숨 5개</small></button>
+                    <button type="button" class="difficulty-card selected" data-difficulty="normal" aria-pressed="true"><strong>보통</strong><small>표준 전투 · 목숨 3개</small></button>
+                    <button type="button" class="difficulty-card" data-difficulty="hard" aria-pressed="false"><strong>어려움</strong><small>빠른 적 · 목숨 2개</small></button>
+                </div>
+            </section>
             <div class="mission-note"><span>MISSION 01</span><span>↑ ↓ ← → / WASD 이동</span><span>자동 발사 · P 일시정지</span></div>
             <div class="hangar-tip">기체 선택은 전술입니다. 격추 · 회피 · 생존으로 기록을 갱신하세요.</div>
             <button id="start-btn" class="glow-btn">출격 준비 <span aria-hidden="true">↗</span></button>
@@ -53,6 +61,7 @@
                 <div class="hud-item">목숨: <span id="lives">3</span> ❤️</div>
                 <div class="hud-item">폭탄: <span id="bombs">2</span> 💣</div>
                 <div class="hud-item">무장 <span id="spread">1</span></div>
+                <div class="hud-item missile-hud">유도탄 <span id="missiles">0</span> 🚀</div>
                 <div class="hud-item">COMBO <span id="combo">0</span></div>
             </div>
             <div id="stage-progress" aria-label="스테이지 진행도"><span id="stage-progress-fill"></span></div>
