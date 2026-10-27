@@ -27,14 +27,69 @@ planeCards.forEach(card => {
     });
 });
 
+// 웹 오디오 신디사이저 (효과음)
+let audioCtx = null;
+function initAudio() {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+}
+
+function playSound(type) {
+    if (!audioCtx) return;
+    try {
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+        let osc = audioCtx.createOscillator();
+        let gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        if (type === 'shoot') {
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(500, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.08);
+            gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.08);
+        } else if (type === 'hit') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
+        } else if (type === 'item') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.15);
+            gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.15);
+        } else if (type === 'bomb') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(100, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(20, audioCtx.currentTime + 0.4);
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.4);
+        }
+    } catch(e) {}
+}
+
 let gameInterval;
 let score = 0;
 let lives = 3;
 let bombs = 1;
 let power = 1;
 let currentStage = 1;
-let stageScore = 0; // 각 스테이지별 격치 횟수 추적
-const SCORE_PER_STAGE = 1000; // 1000점 도달시 보스 출현
+let stageScore = 0;
+const SCORE_PER_STAGE = 1000;
 
 let player = {
     x: canvas.width / 2,
@@ -50,9 +105,8 @@ let enemies = [];
 let items = [];
 let stars = [];
 let boss = null;
-let bombEffectTimer = 0; // 폭탄 연출 프레임 카운터
+let bombEffectTimer = 0;
 
-// 배경 별 생성
 for(let i=0; i<40; i++) {
     stars.push({
         x: Math.random() * canvas.width,
@@ -97,6 +151,7 @@ function getPlaneIcon(type) {
 }
 
 function startGame() {
+    initAudio();
     startScreen.classList.add('hidden');
     gameOverScreen.classList.add('hidden');
     gameScreen.classList.remove('hidden');
@@ -136,6 +191,7 @@ let shootTimer = 0;
 function handleShooting() {
     shootTimer++;
     if (shootTimer % 12 === 0) {
+        playSound('shoot');
         if (selectedPlaneType === 'bunny') {
             bullets.push({x: player.x, y: player.y - 20, vy: -10, size: 6, color: '#ff7eb3'});
             if (power >= 2) {
@@ -162,38 +218,35 @@ function handleShooting() {
     }
 }
 
-// 적 생성 (보스가 없을 때만)
+// 적 생성 (날아다니는 괴물들: 박쥐, 유령, 드래곤, 외계 괴물 등)
 let spawnTimer = 0;
 function handleEnemies() {
-    if (boss) return; // 보스전 중에는 일반 적 생성 안 함
+    if (boss) return;
 
     spawnTimer++;
-    // 스테이지가 올라갈수록 적이 빠르게 나옴
     let spawnRate = Math.max(20, 45 - (currentStage * 5));
     if (spawnTimer % spawnRate === 0) {
-        // 1984풍의 엄숙하고 감시적인 디스토피아 적 캐릭터 (사상경찰, 텔레스크린, 감시탑)
-        const dystopiaEnemies = ['👁️', '👮‍♂️', '🚨', '🏛️', '⚡'];
+        const flyingMonsters = ['🦇', '👻', '🐉', '👾', '🦅'];
         enemies.push({
             x: Math.random() * (canvas.width - 40) + 20,
             y: -30,
             size: 26,
             speed: (Math.random() * 1.5 + 1.5) + (currentStage * 0.3),
             hp: power >= 2 ? 2 : 1,
-            icon: dystopiaEnemies[Math.floor(Math.random() * dystopiaEnemies.length)]
+            icon: flyingMonsters[Math.floor(Math.random() * flyingMonsters.length)]
         });
     }
 
-    // 스테이지 진행도 체크 (1000점마다 보스 등장)
     if (stageScore >= SCORE_PER_STAGE) {
         spawnBoss();
     }
 }
 
-// 보스 소환 함수
+// 보스 소환
 function spawnBoss() {
-    enemies = []; // 잔여 적 제거
-    const bossIcons = ['🟥', '👁️‍🗨️', '👑'];
-    const bossNames = ['사상경찰 최고 책임자', '거대 텔레스크린 (빅 브라더)', '미래부 장관'];
+    enemies = [];
+    const bossIcons = ['👿', '🐉', '💀'];
+    const bossNames = ['가고일 군주', '네더 드래곤', '다크 수호자'];
     
     let stageIdx = Math.min(currentStage - 1, bossIcons.length - 1);
     boss = {
@@ -209,20 +262,21 @@ function spawnBoss() {
     };
 }
 
-// 1984 스타일 폭탄 발사 (사상정화 연출)
+// 폭탄 발사
 function triggerBomb() {
     if (bombs > 0) {
         bombs--;
+        playSound('bomb');
         enemies = [];
         if (boss) {
-            boss.hp -= 15; // 보스에게 큰 피해
+            boss.hp -= 15;
             if (boss.hp <= 0) {
                 defeatBoss();
             }
         }
         score += 300;
         updateHUD();
-        bombEffectTimer = 35; // 35프레임 동안 화면 폭발/검열 연출 유지
+        bombEffectTimer = 35;
     }
 }
 bombBtn.addEventListener('click', triggerBomb);
@@ -240,7 +294,6 @@ function defeatBoss() {
 }
 
 function updateGame() {
-    // 플레이어 이동
     if (isMouseDown) {
         player.x += (mouseX - player.x) * 0.15;
         player.y += (mouseY - player.y) * 0.15;
@@ -256,7 +309,6 @@ function updateGame() {
     handleShooting();
     handleEnemies();
 
-    // 배경 별 렌더링
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = '#ffffff';
     stars.forEach(star => {
@@ -265,7 +317,7 @@ function updateGame() {
         ctx.fillRect(star.x, star.y, star.size, star.size);
     });
 
-    // 총알 업데이트
+    // 총알
     bullets.forEach((b, index) => {
         b.y += b.vy;
         if (b.vx) b.x += b.vx;
@@ -277,19 +329,17 @@ function updateGame() {
         if (b.y < 0) bullets.splice(index, 1);
     });
 
-    // 보스 업데이트 및 렌더링
+    // 보스
     if (boss) {
         if (boss.y < boss.targetY) boss.y += 1.5;
         boss.x += boss.vx;
         if (boss.x < 50 || boss.x > canvas.width - 50) boss.vx *= -1;
 
-        // 보스 아이콘
         ctx.font = '50px sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(boss.icon, boss.x, boss.y);
 
-        // 보스 체력바 렌더링
         ctx.fillStyle = '#333';
         ctx.fillRect(canvas.width / 2 - 100, 15, 200, 10);
         ctx.fillStyle = '#cc3333';
@@ -298,8 +348,8 @@ function updateGame() {
         ctx.font = '11px sans-serif';
         ctx.fillText(`[BOSS] ${boss.name}`, canvas.width / 2, 35);
 
-        // 플레이어와 보스 충돌
         if (Math.hypot(player.x - boss.x, player.y - boss.y) < 40) {
+            playSound('hit');
             if (player.shield) {
                 player.shield = false;
             } else {
@@ -309,7 +359,6 @@ function updateGame() {
             }
         }
 
-        // 총알과 보스 충돌
         bullets.forEach((b, bIndex) => {
             if (Math.hypot(b.x - boss.x, b.y - boss.y) < 35) {
                 bullets.splice(bIndex, 1);
@@ -321,7 +370,7 @@ function updateGame() {
         });
     }
 
-    // 일반 적 업데이트
+    // 일반 적 (날아다니는 괴물들)
     enemies.forEach((enemy, eIndex) => {
         enemy.y += enemy.speed;
         ctx.font = '26px sans-serif';
@@ -330,6 +379,7 @@ function updateGame() {
         ctx.fillText(enemy.icon, enemy.x, enemy.y);
 
         if (Math.hypot(player.x - enemy.x, player.y - enemy.y) < 25) {
+            playSound('hit');
             enemies.splice(eIndex, 1);
             if (player.shield) {
                 player.shield = false;
@@ -350,13 +400,14 @@ function updateGame() {
                     stageScore += 100;
                     updateHUD();
 
-                    // 아이템 드랍 (초콜릿, 빅토리 진, 유리문진, 비밀 일기장)
+                    // 아이템 드랍: 색상으로 구분되는 선물상자
+                    // 초콜릿(갈색상자), 빅토리 진(파란상자), 유리문진(청록상자), 비밀 일기장(황금상자)
                     if (Math.random() < 0.35) {
                         const itemTypes = [
-                            { type: 'choco', icon: '🍫', name: '초콜릿' },
-                            { type: 'gin', icon: '🥃', name: '빅토리 진' },
-                            { type: 'paperweight', icon: '💎', name: '유리문진' },
-                            { type: 'diary', icon: '📖', name: '비밀 일기장' }
+                            { type: 'choco', boxColor: '#8B4513', ribbonColor: '#ff7eb3', name: '초콜릿' },
+                            { type: 'gin', boxColor: '#1e90ff', ribbonColor: '#ffffff', name: '빅토리 진' },
+                            { type: 'paperweight', boxColor: '#00ced1', ribbonColor: '#ffffe0', name: '유리문진' },
+                            { type: 'diary', boxColor: '#ffd700', ribbonColor: '#cc3333', name: '비밀 일기장' }
                         ];
                         const chosen = itemTypes[Math.floor(Math.random() * itemTypes.length)];
                         items.push({ x: enemy.x, y: enemy.y, vy: 1.5, ...chosen });
@@ -370,13 +421,19 @@ function updateGame() {
         }
     });
 
-    // 아이템 업데이트
+    // 아이템 (선물상자 렌더링)
     items.forEach((item, iIndex) => {
         item.y += item.vy;
-        ctx.font = '20px sans-serif';
-        ctx.fillText(item.icon, item.x, item.y);
+
+        // 캔버스로 색상별 선물상자 그리기
+        ctx.fillStyle = item.boxColor;
+        ctx.fillRect(item.x - 12, item.y - 12, 24, 24);
+        ctx.fillStyle = item.ribbonColor;
+        ctx.fillRect(item.x - 3, item.y - 12, 6, 24); // 세로 리본
+        ctx.fillRect(item.x - 12, item.y - 3, 24, 6);  // 가로 리본
 
         if (Math.hypot(player.x - item.x, player.y - item.y) < 25) {
+            playSound('item');
             items.splice(iIndex, 1);
             if (item.type === 'choco') {
                 if (power < 3) power++;
@@ -396,7 +453,7 @@ function updateGame() {
         }
     });
 
-    // 플레이어 렌더링
+    // 플레이어
     ctx.font = '32px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -410,20 +467,16 @@ function updateGame() {
         ctx.stroke();
     }
 
-    // 1984 스타일 사상정화 폭탄 폭발 임팩트 연출
+    // 폭탄 이펙트
     if (bombEffectTimer > 0) {
         bombEffectTimer--;
-        ctx.fillStyle = bombEffectTimer % 4 < 2 ? 'rgba(204, 51, 51, 0.5)' : 'rgba(255, 255, 255, 0.4)';
+        ctx.fillStyle = bombEffectTimer % 4 < 2 ? 'rgba(255, 117, 140, 0.5)' : 'rgba(255, 255, 255, 0.4)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.fillStyle = '#ff3333';
-        ctx.font = 'bold 22px Courier New';
-        ctx.textAlign = 'center';
-        ctx.fillText("⚠️ BIG BROTHER IS WATCHING ⚠️", canvas.width / 2, canvas.height / 2);
     }
 }
 
 function gameOver() {
+    playSound('hit');
     clearInterval(gameInterval);
     gameScreen.classList.add('hidden');
     gameOverScreen.classList.remove('hidden');
@@ -436,7 +489,7 @@ function gameClear() {
     clearInterval(gameInterval);
     gameScreen.classList.add('hidden');
     gameOverScreen.classList.remove('hidden');
-    gameOverTitle.textContent = "VICTORY! (1984 탈출 성공)";
+    gameOverTitle.textContent = "VICTORY! (모든 스테이지 클리어)";
     gameOverTitle.style.color = "#06d6a0";
     finalScoreEl.textContent = score;
 }
