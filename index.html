@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cute Star Fighters: 1984 Edition</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-wrapper">
+        <!-- 시작 화면: 비행기 선택 -->
+        <div id="start-screen" class="screen">
+            <h1>🐰 CUTE STAR FIGHTERS 🐥</h1>
+            <p>1984 감시망을 피해 날아오르는 아기자기한 우주 모험!</p>
+            <div class="selection-container">
+                <div class="plane-card selected" data-plane="bunny">
+                    <div class="plane-icon">🐰</div>
+                    <h3>핑크 버니</h3>
+                    <p>고속형 / 표준 연사</p>
+                </div>
+                <div class="plane-card" data-plane="duck">
+                    <div class="plane-icon">🐥</div>
+                    <h3>옐로우 덕</h3>
+                    <p>밸런스형 / 2WAY탄</p>
+                </div>
+                <div class="plane-card" data-plane="cat">
+                    <div class="plane-icon">🐱</div>
+                    <h3>퍼플 캣</h3>
+                    <p>확산형 / 3WAY탄</p>
+                </div>
+                <div class="plane-card" data-plane="bear">
+                    <div class="plane-icon">🐻</div>
+                    <h3>브라운 베어</h3>
+                    <p>파워형 / 강력한 단발</p>
+                </div>
+                <div class="plane-card" data-plane="frog">
+                    <div class="plane-icon">🐸</div>
+                    <h3>그린 프로그</h3>
+                    <p>특수형 / 넓은 범위</p>
+                </div>
+            </div>
+            <button id="start-btn">게임 시작하기</button>
+        </div>
+
+        <!-- 게임 플레이 화면 -->
+        <div id="game-screen" class="screen hidden">
+            <div id="hud">
+                <div>점수: <span id="score">0</span></div>
+                <div>목숨: <span id="lives">3</span> ❤️</div>
+                <div>폭탄: <span id="bombs">1</span> 💣</div>
+                <div>파워: Lv.<span id="power">1</span> 🍫</div>
+            </div>
+            <canvas id="gameCanvas" width="480" height="580"></canvas>
+            <div id="controls-panel">
+                <button id="bomb-btn">💣 필살기 폭탄 발사!</button>
+            </div>
+        </div>
+
+        <!-- 게임 오버 화면 -->
+        <div id="gameover-screen" class="screen hidden">
+            <h2>GAME OVER</h2>
+            <p>최종 점수: <span id="final-score">0</span></p>
+            <button id="restart-btn">다시 하기</button>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
