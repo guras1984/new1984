@@ -24,6 +24,13 @@ const spreadEl = document.getElementById('spread');
 const missilesEl = document.getElementById('missiles');
 const finalScoreEl = document.getElementById('final-score');
 const gameOverTitle = document.getElementById('gameover-title');
+const rankNicknameEl = document.getElementById('rank-nickname');
+const submitRankBtn = document.getElementById('submit-rank-btn');
+const rankStatusEl = document.getElementById('rank-status');
+const rankingListEl = document.getElementById('ranking-list');
+
+// Google Apps Script 웹 앱을 배포한 뒤 이 주소를 /exec URL로 바꾸세요.
+const RANKING_API_URL = 'https://script.google.com/macros/s/AKfycbwNHC8b70SXTPx9qM7xEFHgkib94re0xhVQ75QCKmQBVphYbYpNT4VaL2KUSaIB-tUpAA/exec';
 
 const stageBanner = document.getElementById('stage-banner');
 const bannerTitle = document.getElementById('banner-title');
@@ -495,13 +502,26 @@ function drawAircraft(x, y, scale, colors, enemy = false, variant = 'standard') 
     ctx.save(); ctx.translate(x, y); if (enemy) ctx.rotate(Math.PI); ctx.scale(scale, scale);
     const base = colors.base || '#9daeb8', hi = colors.high || '#f0f3e9', accent = colors.accent || '#d7b875';
     if (!enemy) {
+        // Animated twin engine flames trail behind the player's aircraft.
+        // The flicker is based on the current time so it animates smoothly without extra timers.
+        const flicker = (Math.sin(Date.now() / 48) + 1) / 2;
+        ctx.save();
         ctx.globalCompositeOperation = 'lighter';
-        const glow = ctx.createRadialGradient(0, 18, 1, 0, 18, 25);
-        glow.addColorStop(0, accent + 'aa'); glow.addColorStop(1, accent + '00');
-        ctx.fillStyle = glow; ctx.beginPath(); ctx.ellipse(0, 18, 16, 28, 0, 0, Math.PI*2); ctx.fill();
-        ctx.globalCompositeOperation = 'source-over';
-        // exhausts
-        for (const ex of [-7, 7]) { ctx.fillStyle = '#8cecff'; ctx.shadowColor = '#8cecff'; ctx.shadowBlur = 12; ctx.fillRect(ex-1.3, 13, 2.6, 11); }
+        const glow = ctx.createRadialGradient(0, 23, 1, 0, 23, 31);
+        glow.addColorStop(0, '#ffbd55aa'); glow.addColorStop(0.45, '#ff6b35aa'); glow.addColorStop(1, '#ff3b2500');
+        ctx.fillStyle = glow; ctx.beginPath(); ctx.ellipse(0, 22, 17, 31, 0, 0, Math.PI*2); ctx.fill();
+        // Two layered flame tongues behind the engine nozzles.
+        for (const ex of [-7, 7]) {
+            const length = 12 + flicker * 9 + (ex < 0 ? 2 : 0);
+            ctx.shadowColor = '#ff7b32'; ctx.shadowBlur = 12;
+            ctx.fillStyle = '#ff5a2a';
+            ctx.beginPath(); ctx.moveTo(ex - 3, 14); ctx.quadraticCurveTo(ex - 4, 20 + flicker * 3, ex, 14 + length); ctx.quadraticCurveTo(ex + 4, 20 + flicker * 2, ex + 3, 14); ctx.closePath(); ctx.fill();
+            ctx.fillStyle = '#ffd36a';
+            ctx.beginPath(); ctx.moveTo(ex - 1.7, 14); ctx.quadraticCurveTo(ex - 2, 20, ex, 17 + length * 0.68); ctx.quadraticCurveTo(ex + 2, 20, ex + 1.7, 14); ctx.closePath(); ctx.fill();
+            ctx.fillStyle = '#d9faff'; ctx.shadowColor = '#8cecff'; ctx.shadowBlur = 8;
+            ctx.fillRect(ex - 1.1, 12, 2.2, 5);
+        }
+        ctx.restore();
     }
     ctx.shadowColor = enemy ? '#ef7160' : '#8cecff'; ctx.shadowBlur = 8;
     // swept wings
@@ -789,9 +809,12 @@ function updateGame() {
                     stageScore += 150;
                     updateHUD();
 
-                    if (Math.random() < 0.4) {
-                        const itemTypes = [
-                            { type: 'life', boxColor: '#c84b59', ribbonColor: '#ffe0e4', name: '추가 목숨 +1', symbol: '+' },
+                    // 쉬움 난이도는 아이템 드롭률을 높이고, 추가 목숨이 더 자주 나오게 한다.
+                    const easyMode = selectedDifficulty === 'easy';
+                    const itemDropChance = easyMode ? 0.68 : 0.40;
+                    if (Math.random() < itemDropChance) {
+                        const lifeItem = { type: 'life', boxColor: '#c84b59', ribbonColor: '#ffe0e4', name: '추가 목숨 +1', symbol: '+' };
+                        const otherItemTypes = [
                             { type: 'shield', boxColor: '#168b91', ribbonColor: '#b9fbff', name: '방어막 충전', symbol: 'S' },
                             { type: 'missile', boxColor: '#d17a32', ribbonColor: '#ffe0a6', name: '유도탄 +3', symbol: 'M' },
                             { type: 'coin', boxColor: '#b28b3c', ribbonColor: '#fff0b3', name: '무장 확장', symbol: 'W' },
@@ -799,7 +822,10 @@ function updateGame() {
                             { type: 'bomb', boxColor: '#2876a0', ribbonColor: '#bae6fd', name: '폭탄 충전', symbol: 'B' },
                             { type: 'bonus', boxColor: '#a9852b', ribbonColor: '#fef08a', name: '보너스 점수', symbol: '+' }
                         ];
-                        const chosen = itemTypes[Math.floor(Math.random() * itemTypes.length)];
+                        // 쉬움: 아이템이 나왔다면 35% 확률로 추가 목숨, 나머지는 다른 아이템.
+                        const chosen = easyMode && Math.random() < 0.35
+                            ? lifeItem
+                            : otherItemTypes[Math.floor(Math.random() * otherItemTypes.length)];
                         items.push({ x: enemy.x, y: enemy.y, vy: 1.45, phase: Math.random() * Math.PI * 2, ...chosen });
                     }
                 }
@@ -885,6 +911,122 @@ function updateGame() {
     }
 }
 
+function rankingApiConfigured() {
+    return RANKING_API_URL.startsWith('https://script.google.com/macros/s/') && RANKING_API_URL.endsWith('/exec');
+}
+
+function requestRankingJsonp(action, params = {}, callbackName) {
+    return new Promise((resolve, reject) => {
+        if (!rankingApiConfigured()) {
+            reject(new Error('Google Apps Script URL을 아직 설정하지 않았습니다.'));
+            return;
+        }
+        const callbackKey = callbackName;
+        const query = new URLSearchParams({ action, callback: callbackKey, ...params, _: String(Date.now()) });
+        const script = document.createElement('script');
+        const cleanup = () => {
+            script.remove();
+            clearTimeout(timeout);
+            try { delete window[callbackKey]; } catch (e) { window[callbackKey] = undefined; }
+        };
+        const timeout = setTimeout(() => {
+            cleanup();
+            reject(new Error('랭킹 서버 응답 시간이 초과되었습니다.'));
+        }, 12000);
+        window[callbackKey] = data => {
+            cleanup();
+            if (data && data.ok) resolve(data);
+            else reject(new Error((data && data.error) || '랭킹 요청에 실패했습니다.'));
+        };
+        script.onerror = () => { cleanup(); reject(new Error('랭킹 서버에 연결할 수 없습니다.')); };
+        script.src = `${RANKING_API_URL}?${query.toString()}`;
+        document.head.appendChild(script);
+    });
+}
+
+function renderRanking(rows) {
+    if (!rankingListEl) return;
+    rankingListEl.replaceChildren();
+    if (!rows || !rows.length) {
+        const li = document.createElement('li');
+        li.textContent = '아직 등록된 점수가 없습니다. 첫 기록을 남겨보세요!';
+        rankingListEl.appendChild(li);
+        return;
+    }
+    rows.slice(0, 10).forEach((row, index) => {
+        const li = document.createElement('li');
+        const place = document.createElement('span');
+        place.className = 'rank-place';
+        place.textContent = `${index + 1}.`;
+        const name = document.createElement('span');
+        name.className = 'rank-name';
+        name.textContent = String(row.nickname || '조종사').slice(0, 12);
+        const meta = document.createElement('span');
+        meta.className = 'rank-meta';
+        const difficultyLabels = { easy: '쉬움', normal: '보통', hard: '어려움' };
+        meta.textContent = `${difficultyLabels[row.difficulty] || '보통'} · ${Number(row.score || 0).toLocaleString('ko-KR')}`;
+        li.append(place, name, meta);
+        rankingListEl.appendChild(li);
+    });
+}
+
+async function loadOnlineRanking() {
+    if (!rankStatusEl) return;
+    if (!rankingApiConfigured()) {
+        rankStatusEl.textContent = '설정 필요: Code.gs 배포 후 script.js의 RANKING_API_URL에 웹 앱 주소를 넣으세요.';
+        if (rankingListEl) rankingListEl.innerHTML = '<li>Google Sheets 연결 후 온라인 랭킹이 표시됩니다.</li>';
+        return;
+    }
+    rankStatusEl.textContent = '온라인 랭킹을 불러오는 중...';
+    try {
+        const data = await requestRankingJsonp('list', {}, 'skyRaidersRankingCallback');
+        renderRanking(data.rows || []);
+        rankStatusEl.textContent = '온라인 랭킹 연결됨';
+    } catch (error) {
+        rankStatusEl.textContent = error.message;
+        if (rankingListEl) rankingListEl.innerHTML = '<li>랭킹을 불러오지 못했습니다. 잠시 후 다시 시도하세요.</li>';
+    }
+}
+
+async function submitOnlineScore() {
+    if (!rankNicknameEl || !submitRankBtn || !rankStatusEl) return;
+    const nickname = rankNicknameEl.value.trim().replace(/[<>]/g, '').slice(0, 12);
+    if (!nickname) {
+        rankStatusEl.textContent = '먼저 닉네임을 입력해 주세요.';
+        rankNicknameEl.focus();
+        return;
+    }
+    if (!rankingApiConfigured()) {
+        rankStatusEl.textContent = '아직 연결되지 않았어요. Code.gs를 배포하고 RANKING_API_URL을 설정해 주세요.';
+        return;
+    }
+    try { localStorage.setItem('skyRaiders84Nickname', nickname); } catch (e) {}
+    submitRankBtn.disabled = true;
+    rankStatusEl.textContent = '점수를 등록하는 중...';
+    try {
+        await requestRankingJsonp('submit', {
+            nickname,
+            score: String(Math.max(0, Math.floor(score))),
+            difficulty: selectedDifficulty,
+            plane: selectedPlaneType,
+            stage: String(Math.max(1, Math.floor(currentStage || 1))),
+            kills: String(Math.max(0, Math.floor(kills || 0)))
+        }, 'skyRaidersSubmitCallback');
+        rankStatusEl.textContent = '점수가 등록되었습니다!';
+        await loadOnlineRanking();
+        rankStatusEl.textContent = '점수가 등록되었습니다!';
+    } catch (error) {
+        rankStatusEl.textContent = error.message;
+    } finally {
+        submitRankBtn.disabled = false;
+    }
+}
+
+if (rankNicknameEl) {
+    try { rankNicknameEl.value = localStorage.getItem('skyRaiders84Nickname') || ''; } catch (e) {}
+}
+if (submitRankBtn) submitRankBtn.addEventListener('click', submitOnlineScore);
+
 function gameOver() {
     if (gameScreen.classList.contains('hidden')) return;
     playSound('hit');
@@ -897,6 +1039,7 @@ function gameOver() {
     if (finalComboEl) finalComboEl.textContent = bestCombo;
     if (finalKillsEl) finalKillsEl.textContent = kills;
     saveBestScore();
+    loadOnlineRanking();
 }
 
 function gameClear() {
@@ -909,6 +1052,7 @@ function gameClear() {
     if (finalComboEl) finalComboEl.textContent = bestCombo;
     if (finalKillsEl) finalKillsEl.textContent = kills;
     saveBestScore();
+    loadOnlineRanking();
 }
 
 function saveBestScore() {

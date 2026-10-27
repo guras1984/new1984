@@ -89,6 +89,15 @@
             <p>최종 점수: <span id="final-score">0</span></p>
             <p class="result-stats">최고 콤보 <span id="final-combo">0</span> · 격추 <span id="final-kills">0</span></p>
             <p class="record-line">PERSONAL BEST <span id="best-score">0</span></p>
+            <section id="online-ranking" class="online-ranking" aria-label="온라인 랭킹">
+                <h3>🏆 ONLINE TOP 10</h3>
+                <div class="rank-submit">
+                    <input id="rank-nickname" type="text" maxlength="12" autocomplete="nickname" placeholder="닉네임 (최대 12자)" aria-label="랭킹 닉네임">
+                    <button id="submit-rank-btn" type="button" class="utility-btn">점수 등록</button>
+                </div>
+                <p id="rank-status" class="rank-status" aria-live="polite">랭킹 연결을 준비 중입니다.</p>
+                <ol id="ranking-list" class="ranking-list"><li>랭킹을 불러오는 중...</li></ol>
+            </section>
             <button id="restart-btn" class="glow-btn">다시 도전하기</button>
         </div>
     </div>
