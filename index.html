@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cute Star Fighters: Nightmare 100 Stages</title>
+    <title>Cute Star Fighters: 1984 Nightmare</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="game-wrapper">
         <!-- 시작 화면 -->
         <div id="start-screen" class="screen">
-            <h1>🐰 CUTE STAR FIGHTERS 🐥</h1>
-            <p>밝은 하늘 아래, 기괴한 괴물들과 맞서는 100스테이지 대모험!</p>
+            <h1>🐰 CUTE FIGHTERS vs 1984 👁️</h1>
+            <p>빅 브라더의 감시망을 뚫고 나아가는 100스테이지 디스토피아 대모험!</p>
             <div class="selection-container">
                 <div class="plane-card selected" data-plane="bunny">
                     <div class="plane-icon">🐰</div>
@@ -39,7 +39,7 @@
                     <p>특수형 / 넓은 범위</p>
                 </div>
             </div>
-            <button id="start-btn">게임 시작하기</button>
+            <button id="start-btn">사상항전 시작하기</button>
         </div>
 
         <!-- 게임 플레이 화면 -->
@@ -48,7 +48,7 @@
                 <div>STAGE <span id="stage">1</span>/100</div>
                 <div>점수: <span id="score">0</span></div>
                 <div>목숨: <span id="lives">3</span> ❤️</div>
-                <div>폭탄: <span id="bombs">1</span> 💣</div>
+                <div>폭탄: <span id="bombs">2</span> 💣</div>
                 <div>파워: Lv.<span id="power">1</span> 🎁</div>
             </div>
             <div id="canvas-container">
@@ -56,11 +56,11 @@
                 <!-- 스테이지 전환 안내 팝업 -->
                 <div id="stage-banner" class="hidden">
                     <h2 id="banner-title">STAGE 1 CLEAR</h2>
-                    <p id="banner-desc">다음 스테이지로 진입합니다...</p>
+                    <p id="banner-desc">사상 검열을 통과했습니다...</p>
                 </div>
             </div>
             <div id="controls-panel">
-                <button id="bomb-btn">💣 강력한 폭탄 발사!</button>
+                <button id="bomb-btn">⚠️ 사상정화 폭탄 (빅 브라더 파괴)</button>
             </div>
         </div>
 
@@ -68,7 +68,7 @@
         <div id="gameover-screen" class="screen hidden">
             <h2 id="gameover-title">GAME OVER</h2>
             <p>최종 점수: <span id="final-score">0</span></p>
-            <button id="restart-btn">다시 하기</button>
+            <button id="restart-btn">다시 도전하기</button>
         </div>
     </div>
     <script src="script.js"></script>

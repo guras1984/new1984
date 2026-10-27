@@ -58,23 +58,23 @@ function playSound(type) {
             osc.type = 'sawtooth';
             osc.frequency.setValueAtTime(120, audioCtx.currentTime);
             osc.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.12);
-            gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
             osc.start(); osc.stop(audioCtx.currentTime + 0.12);
         } else if (type === 'item') {
             osc.type = 'sine';
             osc.frequency.setValueAtTime(500, audioCtx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(1000, audioCtx.currentTime + 0.15);
+            osc.frequency.exponentialRampToValueAtTime(1100, audioCtx.currentTime + 0.15);
             gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
             osc.start(); osc.stop(audioCtx.currentTime + 0.15);
         } else if (type === 'bomb') {
             osc.type = 'triangle';
-            osc.frequency.setValueAtTime(80, audioCtx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(10, audioCtx.currentTime + 0.5);
-            gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
-            osc.start(); osc.stop(audioCtx.currentTime + 0.5);
+            osc.frequency.setValueAtTime(70, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(10, audioCtx.currentTime + 0.6);
+            gain.gain.setValueAtTime(0.45, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.6);
         } else if (type === 'stageUp') {
             osc.type = 'sine';
             osc.frequency.setValueAtTime(400, audioCtx.currentTime);
@@ -89,11 +89,11 @@ function playSound(type) {
 let gameInterval;
 let score = 0;
 let lives = 3;
-let bombs = 1;
-let power = 1; // 최대 5레벨까지 강화 가능!
+let bombs = 2;
+let power = 1;
 let currentStage = 1;
 let stageScore = 0;
-const SCORE_PER_STAGE = 800; // 스테이지 당 점수 요건
+const SCORE_PER_STAGE = 900;
 let isPausedForBanner = false;
 
 let player = {
@@ -112,7 +112,6 @@ let clouds = [];
 let boss = null;
 let bombEffectTimer = 0;
 
-// 밝은 배경을 위한 구름 생성
 for(let i=0; i<15; i++) {
     clouds.push({
         x: Math.random() * canvas.width,
@@ -197,7 +196,7 @@ function updateHUD() {
     powerEl.textContent = power;
 }
 
-// 강화된 파워에 따른 미사일 발사 (최대 Lv.5)
+// 미사일 발사 (최대 Lv.5)
 let shootTimer = 0;
 function handleShooting() {
     shootTimer++;
@@ -205,40 +204,40 @@ function handleShooting() {
         playSound('shoot');
         let p = power;
         if (selectedPlaneType === 'bunny') {
-            bullets.push({x: player.x, y: player.y - 20, vy: -12, size: 6, color: '#f43f5e'});
-            if (p >= 2) { bullets.push({x: player.x - 12, y: player.y - 10, vy: -12, size: 5, color: '#f43f5e'}); bullets.push({x: player.x + 12, y: player.y - 10, vy: -12, size: 5, color: '#f43f5e'}); }
-            if (p >= 3) { bullets.push({x: player.x - 24, y: player.y, vy: -11, size: 5, color: '#f43f5e'}); bullets.push({x: player.x + 24, y: player.y, vy: -11, size: 5, color: '#f43f5e'}); }
-            if (p >= 4) { bullets.push({x: player.x - 6, y: player.y - 15, vy: -13, size: 7, color: '#fb7185'}); bullets.push({x: player.x + 6, y: player.y - 15, vy: -13, size: 7, color: '#fb7185'}); }
+            bullets.push({x: player.x, y: player.y - 20, vy: -12, size: 6, color: '#dc2626'});
+            if (p >= 2) { bullets.push({x: player.x - 12, y: player.y - 10, vy: -12, size: 5, color: '#dc2626'}); bullets.push({x: player.x + 12, y: player.y - 10, vy: -12, size: 5, color: '#dc2626'}); }
+            if (p >= 3) { bullets.push({x: player.x - 24, y: player.y, vy: -11, size: 5, color: '#b91c1c'}); bullets.push({x: player.x + 24, y: player.y, vy: -11, size: 5, color: '#b91c1c'}); }
+            if (p >= 4) { bullets.push({x: player.x - 6, y: player.y - 15, vy: -13, size: 7, color: '#ef4444'}); bullets.push({x: player.x + 6, y: player.y - 15, vy: -13, size: 7, color: '#ef4444'}); }
             if (p >= 5) { bullets.push({x: player.x - 32, y: player.y + 5, vy: -10, size: 6, color: '#fff'}); bullets.push({x: player.x + 32, y: player.y + 5, vy: -10, size: 6, color: '#fff'}); }
         } else if (selectedPlaneType === 'duck') {
-            bullets.push({x: player.x - 8, y: player.y - 15, vy: -11, vx: -1, size: 6, color: '#fbbf24'});
-            bullets.push({x: player.x + 8, y: player.y - 15, vy: -11, vx: 1, size: 6, color: '#fbbf24'});
-            if (p >= 2) { bullets.push({x: player.x - 20, y: player.y - 5, vy: -11, vx: -2, size: 5, color: '#fbbf24'}); bullets.push({x: player.x + 20, y: player.y - 5, vy: -11, vx: 2, size: 5, color: '#fbbf24'}); }
-            if (p >= 3) { bullets.push({x: player.x, y: player.y - 25, vy: -12, size: 8, color: '#f59e0b'}); }
+            bullets.push({x: player.x - 8, y: player.y - 15, vy: -11, vx: -1, size: 6, color: '#f59e0b'});
+            bullets.push({x: player.x + 8, y: player.y - 15, vy: -11, vx: 1, size: 6, color: '#f59e0b'});
+            if (p >= 2) { bullets.push({x: player.x - 20, y: player.y - 5, vy: -11, vx: -2, size: 5, color: '#f59e0b'}); bullets.push({x: player.x + 20, y: player.y - 5, vy: -11, vx: 2, size: 5, color: '#f59e0b'}); }
+            if (p >= 3) { bullets.push({x: player.x, y: player.y - 25, vy: -12, size: 8, color: '#d97706'}); }
             if (p >= 4) { bullets.push({x: player.x - 30, y: player.y, vy: -10, vx: -3, size: 6, color: '#fef3c7'}); bullets.push({x: player.x + 30, y: player.y, vy: -10, vx: 3, size: 6, color: '#fef3c7'}); }
             if (p >= 5) { bullets.push({x: player.x - 15, y: player.y - 20, vy: -13, vx: -0.5, size: 6, color: '#fff'}); bullets.push({x: player.x + 15, y: player.y - 20, vy: -13, vx: 0.5, size: 6, color: '#fff'}); }
         } else if (selectedPlaneType === 'cat') {
-            bullets.push({x: player.x, y: player.y - 20, vy: -12, vx: 0, size: 6, color: '#38bdf8'});
-            bullets.push({x: player.x - 15, y: player.y - 15, vy: -11, vx: -2, size: 5, color: '#38bdf8'});
-            bullets.push({x: player.x + 15, y: player.y - 15, vy: -11, vx: 2, size: 5, color: '#38bdf8'});
-            if (p >= 3) { bullets.push({x: player.x - 28, y: player.y - 10, vy: -10, vx: -4, size: 5, color: '#0284c7'}); bullets.push({x: player.x + 28, y: player.y - 10, vy: -10, vx: 4, size: 5, color: '#0284c7'}); }
+            bullets.push({x: player.x, y: player.y - 20, vy: -12, vx: 0, size: 6, color: '#0284c7'});
+            bullets.push({x: player.x - 15, y: player.y - 15, vy: -11, vx: -2, size: 5, color: '#0284c7'});
+            bullets.push({x: player.x + 15, y: player.y - 15, vy: -11, vx: 2, size: 5, color: '#0284c7'});
+            if (p >= 3) { bullets.push({x: player.x - 28, y: player.y - 10, vy: -10, vx: -4, size: 5, color: '#0369a1'}); bullets.push({x: player.x + 28, y: player.y - 10, vy: -10, vx: 4, size: 5, color: '#0369a1'}); }
             if (p >= 5) { bullets.push({x: player.x - 40, y: player.y, vy: -9, vx: -5, size: 6, color: '#fff'}); bullets.push({x: player.x + 40, y: player.y, vy: -9, vx: 5, size: 6, color: '#fff'}); }
         } else if (selectedPlaneType === 'bear') {
-            bullets.push({x: player.x, y: player.y - 25, vy: -10, size: p >= 3 ? 14 : 10, color: '#ea580c'});
-            if (p >= 2) { bullets.push({x: player.x - 10, y: player.y - 15, vy: -11, size: 8, color: '#c2410c'}); bullets.push({x: player.x + 10, y: player.y - 15, vy: -11, size: 8, color: '#c2410c'}); }
-            if (p >= 4) { bullets.push({x: player.x - 20, y: player.y - 5, vy: -11, size: 9, color: '#9a3412'}); bullets.push({x: player.x + 20, y: player.y - 5, vy: -11, size: 9, color: '#9a3412'}); }
+            bullets.push({x: player.x, y: player.y - 25, vy: -10, size: p >= 3 ? 14 : 10, color: '#9a3412'});
+            if (p >= 2) { bullets.push({x: player.x - 10, y: player.y - 15, vy: -11, size: 8, color: '#7c2d12'}); bullets.push({x: player.x + 10, y: player.y - 15, vy: -11, size: 8, color: '#7c2d12'}); }
+            if (p >= 4) { bullets.push({x: player.x - 20, y: player.y - 5, vy: -11, size: 9, color: '#431407'}); bullets.push({x: player.x + 20, y: player.y - 5, vy: -11, size: 9, color: '#431407'}); }
             if (p >= 5) { bullets.push({x: player.x, y: player.y - 30, vy: -14, size: 16, color: '#fff'}); }
         } else if (selectedPlaneType === 'frog') {
-            bullets.push({x: player.x - 12, y: player.y - 15, vy: -12, vx: -0.5, size: 6, color: '#10b981'});
-            bullets.push({x: player.x + 12, y: player.y - 15, vy: -12, vx: 0.5, size: 6, color: '#10b981'});
-            if (p >= 2) { bullets.push({x: player.x - 25, y: player.y - 10, vy: -11, vx: -2, size: 6, color: '#059669'}); bullets.push({x: player.x + 25, y: player.y - 10, vy: -11, vx: 2, size: 6, color: '#059669'}); }
-            if (p >= 4) { bullets.push({x: player.x - 38, y: player.y - 5, vy: -10, vx: -3.5, size: 6, color: '#047857'}); bullets.push({x: player.x + 38, y: player.y - 5, vy: -10, vx: 3.5, size: 6, color: '#047857'}); }
+            bullets.push({x: player.x - 12, y: player.y - 15, vy: -12, vx: -0.5, size: 6, color: '#059669'});
+            bullets.push({x: player.x + 12, y: player.y - 15, vy: -12, vx: 0.5, size: 6, color: '#059669'});
+            if (p >= 2) { bullets.push({x: player.x - 25, y: player.y - 10, vy: -11, vx: -2, size: 6, color: '#047857'}); bullets.push({x: player.x + 25, y: player.y - 10, vy: -11, vx: 2, size: 6, color: '#047857'}); }
+            if (p >= 4) { bullets.push({x: player.x - 38, y: player.y - 5, vy: -10, vx: -3.5, size: 6, color: '#065f46'}); bullets.push({x: player.x + 38, y: player.y - 5, vy: -10, vx: 3.5, size: 6, color: '#065f46'}); }
             if (p >= 5) { bullets.push({x: player.x, y: player.y - 25, vy: -13, size: 10, color: '#fff'}); }
         }
     }
 }
 
-// 훨씬 무섭고 기괴한 적 생성 및 복잡한 패턴 부여 (웨이브, 지그재그, 급강하)
+// 적 생성 및 복잡한 패턴
 let spawnTimer = 0;
 function handleEnemies() {
     if (boss) return;
@@ -246,8 +245,8 @@ function handleEnemies() {
     spawnTimer++;
     let spawnRate = Math.max(12, 38 - (currentStage * 0.3));
     if (spawnTimer % spawnRate === 0) {
-        // 기괴하고 무서운 괴물 이모지들
-        const scaryMonsters = ['🕷️', '🧟', '💀', '🧠', '👁️', '🩸', '☠️', '🪱', '🦇', '👹'];
+        // 1984 디스토피아적 무서운 적들 (사상경찰, 텔레스크린, 감시탑, 고문관 등)
+        const dystopiaMonsters = ['👁️', '👮‍♂️', '📺', '🚨', '🏛️', '⚡', '⛓️', '🩸', '👁️‍🗨️', '⚠️'];
         const patterns = ['straight', 'wave', 'zigzag', 'dive'];
         let chosenPattern = patterns[Math.floor(Math.random() * patterns.length)];
 
@@ -258,7 +257,7 @@ function handleEnemies() {
             size: 28,
             speed: (Math.random() * 1.8 + 1.8) + (currentStage * 0.05),
             hp: 1 + Math.floor(currentStage / 20),
-            icon: scaryMonsters[Math.floor(Math.random() * scaryMonsters.length)],
+            icon: dystopiaMonsters[Math.floor(Math.random() * dystopiaMonsters.length)],
             pattern: chosenPattern,
             angle: Math.random() * Math.PI * 2
         });
@@ -269,11 +268,11 @@ function handleEnemies() {
     }
 }
 
-// 보스 소환 (매 스테이지마다 더 무서운 대형 보스)
+// 보스 소환 (1984 원작 기반 거대 보스들)
 function spawnBoss() {
     enemies = [];
-    const bossIcons = ['👹', '🧛‍♂️', '🐙', '☠️', '👽', '💀', '👿', '🐉'];
-    const bossNames = ['기괴한 사령관', '네크로맨서', '심해의 공포', '악몽의 지배자', '혼돈의 거대 괴수', '지옥의 파괴자', '최강의 악마왕', '궁극의 공포 군주'];
+    const bossIcons = ['🟥', '👁️‍🗨️', '🏛️', '⛓️', '🚨', '👑', '☠️', '⚡'];
+    const bossNames = ['사상경찰 최고사령관', '거대 텔레스크린 (빅 브라더)', '사랑부 고문실장', '진실부 장관', '사상검열관', '오브라이언의 그림자', '빅 브라더의 눈', '궁극의 영구전쟁 지배자'];
     
     let stageIdx = (currentStage - 1) % bossIcons.length;
     boss = {
@@ -281,29 +280,29 @@ function spawnBoss() {
         y: -60,
         targetY: 100,
         size: 65,
-        hp: 30 + (currentStage * 15),
-        maxHp: 30 + (currentStage * 15),
+        hp: 35 + (currentStage * 15),
+        maxHp: 35 + (currentStage * 15),
         icon: bossIcons[stageIdx],
         name: bossNames[Math.floor((currentStage - 1) / bossIcons.length) % bossNames.length],
         vx: 2 + (currentStage * 0.05)
     };
 }
 
-// 폭탄 발사
+// 강력한 1984 사상정화 폭탄 발사 (화면 전체 붕괴/검열 임팩트)
 function triggerBomb() {
     if (bombs > 0 && !isPausedForBanner) {
         bombs--;
         playSound('bomb');
         enemies = [];
         if (boss) {
-            boss.hp -= 40 + (currentStage * 2);
+            boss.hp -= 45 + (currentStage * 2);
             if (boss.hp <= 0) {
                 defeatBoss();
             }
         }
         score += 500;
         updateHUD();
-        bombEffectTimer = 40;
+        bombEffectTimer = 50; // 더 길고 강렬한 임팩트 프레임
     }
 }
 bombBtn.addEventListener('click', triggerBomb);
@@ -321,8 +320,8 @@ function defeatBoss() {
 
     playSound('stageUp');
     isPausedForBanner = true;
-    bannerTitle.textContent = `STAGE ${currentStage - 1} CLEAR!`;
-    bannerDesc.textContent = `다음은 STAGE ${currentStage} (100스테이지 도전 중)`;
+    bannerTitle.textContent = `STAGE ${currentStage - 1} 사상정화 완료`;
+    bannerDesc.textContent = `빅 브라더의 감시를 피해 STAGE ${currentStage} (으)로 진입합니다.`;
     stageBanner.classList.remove('hidden');
 
     setTimeout(() => {
@@ -350,7 +349,6 @@ function updateGame() {
     handleShooting();
     handleEnemies();
 
-    // 밝은 배경 및 구름 렌더링
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
     clouds.forEach(cloud => {
@@ -385,12 +383,12 @@ function updateGame() {
         ctx.textBaseline = 'middle';
         ctx.fillText(boss.icon, boss.x, boss.y);
 
-        ctx.fillStyle = '#cbd5e1';
+        ctx.fillStyle = '#94a3b8';
         ctx.fillRect(canvas.width / 2 - 120, 15, 240, 12);
-        ctx.fillStyle = '#e11d48';
+        ctx.fillStyle = '#dc2626';
         ctx.fillRect(canvas.width / 2 - 120, 15, Math.max(0, (boss.hp / boss.maxHp) * 240), 12);
-        ctx.fillStyle = '#1e293b';
-        ctx.font = 'bold 12px sans-serif';
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 11px sans-serif';
         ctx.fillText(`[STAGE ${currentStage} BOSS] ${boss.name}`, canvas.width / 2, 36);
 
         if (Math.hypot(player.x - boss.x, player.y - boss.y) < 45) {
@@ -415,11 +413,10 @@ function updateGame() {
         });
     }
 
-    // 일반 적 업데이트 및 복잡한 패턴 적용
+    // 일반 적
     enemies.forEach((enemy, eIndex) => {
         enemy.y += enemy.speed;
         
-        // 복잡한 이동 패턴 계산
         if (enemy.pattern === 'wave') {
             enemy.angle += 0.08;
             enemy.x = enemy.startX + Math.sin(enemy.angle) * 60;
@@ -458,13 +455,14 @@ function updateGame() {
                     stageScore += 150;
                     updateHUD();
 
-                    // 아이템 드랍 (강화된 효과)
-                    if (Math.random() < 0.38) {
+                    // 1984 원작 기반 다양한 아이템 드랍 (선물상자 색상별)
+                    if (Math.random() < 0.4) {
                         const itemTypes = [
-                            { type: 'choco', boxColor: '#7c2d12', ribbonColor: '#f43f5e', name: '초콜릿(파워)' },
-                            { type: 'gin', boxColor: '#0284c7', ribbonColor: '#ffffff', name: '빅토리 진(폭탄)' },
-                            { type: 'paperweight', boxColor: '#0d9488', ribbonColor: '#ccfbff', name: '유리문진(실드)' },
-                            { type: 'diary', boxColor: '#eab308', ribbonColor: '#b91c1c', name: '비밀 일기장(보너스)' }
+                            { type: 'choco', boxColor: '#7c2d12', ribbonColor: '#f87171', name: '초콜릿 (파워 업)' },
+                            { type: 'gin', boxColor: '#0369a1', ribbonColor: '#ffffff', name: '빅토리 진 (폭탄 충전)' },
+                            { type: 'paperweight', boxColor: '#0d9488', ribbonColor: '#ccfbff', name: '유리문진 (실드)' },
+                            { type: 'diary', boxColor: '#ca8a04', ribbonColor: '#b91c1c', name: '비밀 일기장 (보너스)' },
+                            { type: 'cigarette', boxColor: '#334155', ribbonColor: '#f1f5f9', name: '빅토리 담배 (스피드업)' }
                         ];
                         const chosen = itemTypes[Math.floor(Math.random() * itemTypes.length)];
                         items.push({ x: enemy.x, y: enemy.y, vy: 1.5, ...chosen });
@@ -492,14 +490,16 @@ function updateGame() {
             playSound('item');
             items.splice(iIndex, 1);
             if (item.type === 'choco') {
-                if (power < 5) power++; // 최대 5단계로 대폭 강화!
+                if (power < 5) power++;
             } else if (item.type === 'gin') {
-                bombs += 2; // 폭탄 2개 충전!
+                bombs += 2;
             } else if (item.type === 'paperweight') {
                 player.shield = true;
             } else if (item.type === 'diary') {
-                score += 500;
-                stageScore += 500;
+                score += 600;
+                stageScore += 600;
+            } else if (item.type === 'cigarette') {
+                player.speed = Math.min(10, player.speed + 1);
             }
             updateHUD();
         }
@@ -516,18 +516,23 @@ function updateGame() {
     ctx.fillText(player.icon, player.x, player.y);
 
     if (player.shield) {
-        ctx.strokeStyle = '#06b6d4';
+        ctx.strokeStyle = '#0284c7';
         ctx.lineWidth = 4;
         ctx.beginPath();
         ctx.arc(player.x, player.y, 26, 0, Math.PI * 2);
         ctx.stroke();
     }
 
-    // 강력한 폭탄 이펙트
+    // 1984 원작 감성의 더욱 강력하고 압도적인 폭발/검열 임팩트 연출
     if (bombEffectTimer > 0) {
         bombEffectTimer--;
-        ctx.fillStyle = bombEffectTimer % 4 < 2 ? 'rgba(244, 63, 94, 0.6)' : 'rgba(255, 255, 255, 0.6)';
+        ctx.fillStyle = bombEffectTimer % 4 < 2 ? 'rgba(185, 28, 28, 0.75)' : 'rgba(255, 255, 255, 0.75)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 20px Courier New';
+        ctx.textAlign = 'center';
+        ctx.fillText("⚠️ BIG BROTHER IS DESTROYED ⚠️", canvas.width / 2, canvas.height / 2);
     }
 }
 
@@ -536,8 +541,8 @@ function gameOver() {
     clearInterval(gameInterval);
     gameScreen.classList.add('hidden');
     gameOverScreen.classList.remove('hidden');
-    gameOverTitle.textContent = "GAME OVER";
-    gameOverTitle.style.color = "#e11d48";
+    gameOverTitle.textContent = "GAME OVER (사상범으로 체포됨)";
+    gameOverTitle.style.color = "#dc2626";
     finalScoreEl.textContent = score;
 }
 
@@ -545,7 +550,7 @@ function gameClear() {
     clearInterval(gameInterval);
     gameScreen.classList.add('hidden');
     gameOverScreen.classList.remove('hidden');
-    gameOverTitle.textContent = "🏆 100스테이지 대완벽 클리어! 🏆";
+    gameOverTitle.textContent = "🏆 100스테이지 완벽 탈출 성공! (영원한 자유) 🏆";
     gameOverTitle.style.color = "#059669";
     finalScoreEl.textContent = score;
 }
