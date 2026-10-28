@@ -50,9 +50,9 @@ const ctx = canvas.getContext('2d');
 let selectedPlaneType = 'standard';
 let selectedDifficulty = 'normal';
 const difficultySettings = {
-    easy:   { spawnInterval: 1.28, enemySpeed: 0.78, enemyHp: 0.75, bossHp: 0.78, lives: 5, bulletSpeed: 0.78 },
-    normal: { spawnInterval: 1.00, enemySpeed: 1.00, enemyHp: 1.00, bossHp: 1.00, lives: 3, bulletSpeed: 1.00 },
-    hard:   { spawnInterval: 0.78, enemySpeed: 1.28, enemyHp: 1.35, bossHp: 1.45, lives: 2, bulletSpeed: 1.25 }
+    easy:   { spawnInterval: 1.28, enemySpeed: 0.78, enemyHp: 0.75, bossHp: 0.78, lives: 5, scoreMultiplier: 0.8, bulletSpeed: 0.78 },
+    normal: { spawnInterval: 1.00, enemySpeed: 1.00, enemyHp: 1.00, bossHp: 1.00, lives: 3, scoreMultiplier: 1, bulletSpeed: 1.00 },
+    hard:   { spawnInterval: 0.78, enemySpeed: 1.28, enemyHp: 1.35, bossHp: 1.45, lives: 2, scoreMultiplier: 1.3, bulletSpeed: 1.25 }
 };
 const planeSpecs = {
     standard:  { speed: 6.5, fireDelay: 9, initialSpread: 1, shield: 0, name: '요격기' },
@@ -86,11 +86,18 @@ difficultyCards.forEach(card => {
         card.classList.add('selected');
         card.setAttribute('aria-pressed', 'true');
         selectedDifficulty = card.dataset.difficulty;
+        document.getElementById('difficulty-score-note').textContent = `획득 점수 ${getDifficulty().scoreMultiplier}배 · 통합 랭킹`;
     });
 });
 
 function getDifficulty() {
     return difficultySettings[selectedDifficulty] || difficultySettings.normal;
+}
+
+function addScore(basePoints) {
+    const points = Math.round(basePoints * getDifficulty().scoreMultiplier);
+    score += points;
+    return points;
 }
 
 let audioCtx = null;
@@ -452,9 +459,9 @@ function awardEnemyKill(enemy) {
     createParticles(enemy.x, enemy.y, '#f59e0b', 18);
     kills++; combo++; comboTimer = 150;
     bestCombo = Math.max(bestCombo, combo);
-    score += 150 + Math.min(500, combo * 10);
+    const earned = addScore(150 + Math.min(500, combo * 10));
     stageScore += 150;
-    addCombatText(enemy.x, enemy.y, `+${150 + Math.min(500, combo * 10)}`, '#ffdd69');
+    addCombatText(enemy.x, enemy.y, `+${earned}`, '#ffdd69');
     maybeDropItem(enemy);
     updateHUD();
 }
@@ -559,7 +566,7 @@ function triggerBomb() {
                 defeatBoss();
             }
         }
-        score += 500;
+        addScore(500);
         stageScore += 500;
         updateHUD();
         bombEffectTimer = 55;
@@ -569,7 +576,7 @@ bombBtn.addEventListener('click', triggerBomb);
 
 function defeatBoss() {
     screenShake = 20;
-    score += 2500;
+    addScore(2500);
     createParticles(boss.x, boss.y, '#f59e0b', 50);
     boss = null;
     stageScore = 0;
@@ -1042,11 +1049,11 @@ function updateGame() {
             items.splice(iIndex, 1);
             if (item.type === 'life') {
                 lives = Math.min(5, lives + 1);
-                score += 100;
+                addScore(100);
                 createParticles(player.x, player.y, '#ff7184', 18);
             } else if (item.type === 'missile') {
                 missileAmmo = Math.min(12, missileAmmo + 3);
-                score += 100;
+                addScore(100);
             } else if (item.type === 'coin') {
                 bulletCount = Math.min(9, bulletCount + 1);
             } else if (item.type === 'power') {
@@ -1057,7 +1064,7 @@ function updateGame() {
                 player.shield = true;
                 shieldHits = Math.min(3, shieldHits + 2);
             } else if (item.type === 'bonus') {
-                score += 800;
+                addScore(800);
                 stageScore += 800;
             }
             updateHUD();
@@ -1125,7 +1132,7 @@ function captureRankingResult() {
         p_id: crypto.randomUUID(),
         p_score: Math.max(0, Math.floor(score)),
         p_difficulty: selectedDifficulty, p_plane: selectedPlaneType,
-        p_stage: Math.max(1, Math.floor(currentStage)),
+        p_stage: Math.min(100, Math.max(1, Math.floor(currentStage))),
         p_kills: Math.max(0, Math.floor(kills))
     };
 }
@@ -1345,3 +1352,10 @@ function renderPlanePreviews() {
     pctx.clearRect(0,0,320,180); paintAircraft(pctx,160,83,2.45,getPlaneColor(selectedPlaneType),selectedPlaneType,false);
 }
 renderPlanePreviews();
+
+// Keep the current mission when the player cancels leaving it.
+document.getElementById('game-home-btn').addEventListener('click', () => {
+    if (gameScreen.classList.contains('hidden')) return;
+    if (!window.confirm('게임을 종료하고 처음 화면으로 돌아갈까요? 현재 점수는 랭킹에 등록되지 않습니다.')) return;
+    returnToStart();
+});

@@ -326,3 +326,7 @@ body{background:radial-gradient(ellipse at 50% 10%,#fbfbf4,#e1edf1);color:#182d4
 #start-screen .start-nav>a:before{content:'';position:absolute;left:0;top:50%;height:12px;width:1px;background:#bdcad1;transform:translateY(-50%)}
 #start-screen .start-nav>a:hover,#start-screen .start-nav>button:hover{color:#182d42;text-decoration:none;background:#e8eff166}
 #start-screen .start-nav>a:focus-visible,#start-screen .start-nav>button:focus-visible{outline:2px solid #839daa;outline-offset:-3px}
+
+#start-screen>#difficulty-score-note{margin:-12px 0 12px;font-size:10px;line-height:1.4;color:#617383;flex-shrink:0;text-align:center}
+#gameover-screen .ranking-score-note{margin:0 0 12px;font-size:10px;line-height:1.6;color:#617383;text-align:center}
+@media(max-height:700px){#start-screen>#difficulty-score-note{margin:-6px 0 8px}}
