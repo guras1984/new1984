@@ -1141,6 +1141,7 @@ async function rankingRpc(name, payload = {}) {
 
 function captureRankingResult() {
     if (rankingResult) return;
+    if (cloudCredentials && rankNicknameEl) rankNicknameEl.value = cloudCredentials.player_id.slice(0, rankNicknameEl.maxLength);
     rankingResult = {
         p_id: crypto.randomUUID(),
         p_score: Math.max(0, Math.floor(score)),

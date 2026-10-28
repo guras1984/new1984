@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SKY RAIDERS ’84 — Aerial Legends</title>
-    <link rel="stylesheet" href="style.css?v=cloud-vault-20261028c">
+    <link rel="stylesheet" href="style.css?v=cloud-vault-20261028d">
 
 
 
@@ -89,14 +89,14 @@
                 <p id="rank-status" class="rank-status" aria-live="polite">랭킹 연결을 준비 중입니다.</p>
                 <ol id="ranking-list" class="ranking-list"><li>랭킹을 불러오는 중...</li></ol>
             </section>
-            <a class="portal-home-link" href="https://guras1984.github.io/webgame/" aria-label="게임 목록으로 돌아가기">게임 목록</a>
-            <div class="result-actions"><button id="restart-btn" class="glow-btn">다시 출격</button><button id="result-home-btn" class="utility-btn">처음으로</button></div>
+            <button id="result-home-btn" type="button" class="utility-btn portal-home-link" aria-label="게임 처음으로 돌아가기">처음으로</button>
+            <div class="result-actions"><button id="restart-btn" class="glow-btn">다시 출격</button></div>
         </div>
     </div>
     <div id="tutorial-overlay" class="hidden" role="dialog" aria-modal="true" aria-labelledby="tutorial-title">
       <div class="tutorial-card"><p class="brand-mark">✦</p><h2 id="tutorial-title">첫 비행 안내</h2><p class="touch-hint">화면을 누른 채 움직여 보세요.<br>비행기는 손가락 위쪽에서 따라옵니다.</p><p class="keyboard-hint">방향키 또는 WASD로 이동합니다.<br>SPACE 또는 B로 폭탄을 사용하세요.</p><div class="tutorial-demo" aria-hidden="true">✈<span>↕</span>◎</div><p>공격은 자동입니다.<br>붉은 탄환은 피하고, 표시가 있는 보급품을 획득하세요.</p><button id="tutorial-start-btn" class="glow-btn">알겠어요, 출격</button><button id="tutorial-skip-btn" class="text-button">건너뛰기</button></div>
     </div>
     <div id="shop-overlay" class="hidden" role="dialog" aria-modal="true" aria-labelledby="shop-title"><section class="shop-panel"><button id="shop-close" class="utility-btn">닫기</button><h2 id="shop-title">꾸미기 상점</h2><p>보유 보석 ◆ <strong id="gem-count">0</strong></p><section class="cloud-account"><p id="cloud-status" class="cloud-status-banner" role="status" aria-live="polite">보관함을 만들거나 기존 보관함을 불러오세요.</p><p id="cloud-saved-state" role="status" aria-live="polite"></p><div id="cloud-auth-form"><h3 id="cloud-auth-title">보관함 불러오기</h3><p id="cloud-auth-description">다른 기기에서 저장한 보석과 꾸미기 상태를 불러옵니다.</p><label for="cloud-id">아이디</label><input id="cloud-id" maxlength="16" autocomplete="username" placeholder="영문·숫자·_·- (3~16자)"><label for="cloud-password">비밀번호</label><input id="cloud-password" type="password" minlength="8" maxlength="72" autocomplete="current-password" placeholder="8자 이상"><button id="cloud-login" type="button" class="utility-btn cloud-primary">보관함 불러오기</button><button id="cloud-signup" type="button" class="utility-btn cloud-primary hidden">보관함 만들기</button><div id="cloud-login-links"><button id="show-signup" type="button" class="text-button">새 보관함 만들기</button><button id="back-to-login" type="button" class="text-button hidden">기존 보관함 불러오기</button></div></div><div id="cloud-account-session" class="hidden"><h3>보관함 연결됨</h3><p id="cloud-account-label"></p><button id="cloud-save" type="button" class="utility-btn">현재 상태를 보관함에 저장</button><button id="cloud-load" type="button" class="utility-btn">보관함 상태 불러오기</button><button id="cloud-logout" type="button" class="utility-btn">연결 해제</button></div><p class="cloud-warning">아이디와 비밀번호를 잊으면 보관함과 저장 데이터를 찾을 수 없습니다. 복구 기능은 제공되지 않습니다.</p></section><p>적을 격추해 보석을 모으세요 · 보스 처치 시 보석 5개<br>장식은 전투 능력과 점수에 영향을 주지 않습니다.</p><canvas id="shop-preview" width="320" height="190" aria-label="장착한 장식 미리보기"></canvas><div id="shop-items"></div></section></div>
-    <script src="script.js?v=cloud-vault-20261028c"></script>
+    <script src="script.js?v=cloud-vault-20261028d"></script>
 </body>
 </html>
