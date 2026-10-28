@@ -1,0 +1,2 @@
+[functions.new1984-login]
+verify_jwt = false

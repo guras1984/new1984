@@ -61,4 +61,32 @@ end $$;
 revoke all on function public.new1984_username_available(text) from public,authenticated;
 grant execute on function public.new1984_username_available(text) to anon;
 
+-- Keep the ID/email mapping private; only the login Edge Function may resolve it.
+create table if not exists public.new1984_player_auth (
+ player_id text primary key references public.new1984_profiles(player_id) on delete cascade,
+ user_id uuid not null unique references auth.users(id) on delete cascade,
+ email text not null unique
+);
+alter table public.new1984_player_auth enable row level security;
+revoke all on public.new1984_player_auth from public,anon,authenticated;
+create or replace function public.new1984_register_player()
+returns trigger language plpgsql security definer set search_path='' as $$
+declare player_id text;
+begin
+ player_id := lower(new.raw_user_meta_data->>'player_id');
+ if player_id is null or player_id !~ '^[a-z0-9_-]{3,16}$' then raise exception 'INVALID_PLAYER_ID'; end if;
+ insert into public.new1984_profiles(user_id,player_id) values(new.id,player_id);
+ insert into public.new1984_player_auth(player_id,user_id,email) values(player_id,new.id,lower(new.email));
+ return new;
+end $$;
+drop trigger if exists new1984_auth_user_created on auth.users;
+create trigger new1984_auth_user_created after insert on auth.users
+ for each row execute function public.new1984_register_player();
+create or replace function public.new1984_get_player_email(p_player_id text)
+returns text language sql stable security definer set search_path='' as $$
+ select email from public.new1984_player_auth where player_id=p_player_id;
+$$;
+revoke all on function public.new1984_get_player_email(text) from public,anon,authenticated;
+grant execute on function public.new1984_get_player_email(text) to service_role;
+
 commit;
