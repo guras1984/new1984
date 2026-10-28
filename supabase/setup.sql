@@ -38,4 +38,27 @@ revoke all on function public.new1984_leaderboard() from public,anon,authenticat
 grant execute on function public.new1984_submit_score(uuid,text,integer,text,text,integer,integer) to anon,authenticated;
 grant execute on function public.new1984_leaderboard() to anon,authenticated;
 
+create table if not exists public.new1984_profiles (
+ user_id uuid primary key references auth.users(id) on delete cascade,
+ player_id text not null unique check(player_id ~ '^[a-z0-9_-]{3,16}$'),
+ gems integer not null default 0 check(gems between 0 and 10000000),
+ owned jsonb not null default '[]'::jsonb check(jsonb_typeof(owned)='array'),
+ equipped jsonb not null default '{}'::jsonb check(jsonb_typeof(equipped)='object'),
+ updated_at timestamptz not null default now()
+);
+alter table public.new1984_profiles enable row level security;
+revoke all on public.new1984_profiles from anon, public;
+grant select,insert,update on public.new1984_profiles to authenticated;
+drop policy if exists new1984_profiles_owner on public.new1984_profiles;
+create policy new1984_profiles_owner on public.new1984_profiles for all to authenticated
+ using ((select auth.uid())=user_id) with check ((select auth.uid())=user_id);
+create or replace function public.new1984_username_available(p_player_id text)
+returns jsonb language plpgsql stable security definer set search_path='' as $$
+begin
+ if p_player_id is null or p_player_id !~ '^[a-z0-9_-]{3,16}$' then raise exception 'INVALID_PLAYER_ID'; end if;
+ return jsonb_build_object('available',not exists(select 1 from public.new1984_profiles where player_id=p_player_id));
+end $$;
+revoke all on function public.new1984_username_available(text) from public,authenticated;
+grant execute on function public.new1984_username_available(text) to anon;
+
 commit;

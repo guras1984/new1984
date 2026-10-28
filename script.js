@@ -1394,6 +1394,9 @@ const cosmetics = [
  {id:'galaxy',slot:'trail',name:'은하수',price:50,color:'#c78aff',desc:'보랏빛과 분홍빛 별가루'},
  {id:'halo',slot:'aura',name:'네온 후광',price:25,color:'#65dcff',desc:'기체를 감싸는 푸른 광륜'},
  {id:'crown',slot:'wings',name:'황금 날개',price:40,color:'#ffdc79',desc:'양옆으로 펼쳐지는 빛의 날개'},
+ {id:'feather',slot:'wings',name:'빛깃 날개',price:55,color:'#a8edff',desc:'푸른 깃털이 겹쳐지는 날개'},
+ {id:'sidefins',slot:'wings',name:'날개 장식',price:28,color:'#ff8cc6',desc:'날개 끝의 분홍빛 보조 날개'},
+ {id:'engines',slot:'wings',name:'쌍발 장식',price:35,color:'#7cf4b0',desc:'양쪽 엔진과 빛나는 배기구'},
  {id:'stars',slot:'aura',name:'별의 수호자',price:60,color:'#ffc7fa',desc:'비행기 주위를 도는 빛나는 별'}
 ];
 function storageWrite(key,value) { try {localStorage.setItem(key,JSON.stringify(value)); return true;} catch {document.getElementById('save-status').textContent='저장 공간을 사용할 수 없습니다. 브라우저 설정을 확인해 주세요.'; return false;} }
@@ -1422,7 +1425,7 @@ function drawCosmetics(c,x,y,scale,t) {
  if(part.slot==='trail'){
   for(let i=0;i<3;i++){c.beginPath();c.moveTo((i-1)*7,18);for(let j=0;j<12;j++)c.lineTo((i-1)*7+Math.sin(t*.08+j*.55+i)*j*.9,18+j*6);c.globalAlpha=.7-i*.12;c.stroke();}
   for(let i=0;i<12;i++){const v=(t*1.7+i*9)%100;c.globalAlpha=1-v/100;c.beginPath();c.arc(Math.sin(i*4+t*.025)*v*.24,22+v,1.5+(i%2),0,Math.PI*2);c.fill();}
- } else if(part.slot==='wings') {c.globalAlpha=.8;for(const side of [-1,1])for(let i=0;i<4;i++){c.beginPath();c.moveTo(side*15,i*4);c.lineTo(side*(48-i*6),-14+i*7);c.lineTo(side*24,20);c.stroke();}}
+ } else if(part.slot==='wings') {c.globalAlpha=.8;for(const side of [-1,1]){for(let i=0;i<4;i++){c.beginPath();c.moveTo(side*15,i*4);c.lineTo(side*(48-i*6),-14+i*7);c.lineTo(side*24,20);c.stroke();}if(part.id==='feather')for(let i=0;i<5;i++){c.beginPath();c.moveTo(side*18,2+i*3);c.quadraticCurveTo(side*(32+i*2),-19+i*5,side*(43-i*3),-13+i*6);c.stroke();}if(part.id==='sidefins'){c.beginPath();c.moveTo(side*22,9);c.lineTo(side*42,7);c.lineTo(side*29,22);c.closePath();c.fill();}if(part.id==='engines'){c.beginPath();c.ellipse(side*19,22,4,8,0,0,Math.PI*2);c.fill();}}}
  else {c.globalAlpha=.75; c.beginPath();c.ellipse(0,4,39,30,Math.sin(t*.02)*.3,0,Math.PI*2);c.stroke();for(let i=0;i<5;i++){const a=t*.025+i*Math.PI*2/5;c.font='15px sans-serif';c.fillText('✦',Math.cos(a)*39-6,Math.sin(a)*30+8);}}
  c.globalAlpha=1;
  }c.restore();
@@ -1434,3 +1437,18 @@ document.getElementById('shop-close').onclick=()=>{shop.classList.add('hidden');
 shop.addEventListener('keydown',e=>{if(e.key==='Escape')document.getElementById('shop-close').click();if(e.key==='Tab'){const buttons=[...shop.querySelectorAll('button:not(:disabled)')];if(e.shiftKey&&document.activeElement===buttons[0]){e.preventDefault();buttons.at(-1).focus();}else if(!e.shiftKey&&document.activeElement===buttons.at(-1)){e.preventDefault();buttons[0].focus();}}});
 function animateShopPreview(){const c=document.getElementById('shop-preview').getContext('2d');if(!shop.classList.contains('hidden')){c.clearRect(0,0,320,190);drawCosmetics(c,160,65,1.5,performance.now()/17);paintAircraft(c,160,65,1.5,getPlaneColor(selectedPlaneType),selectedPlaneType,false);}requestAnimationFrame(animateShopPreview);}
 saveWardrobe();refreshContinue();animateShopPreview();
+
+
+const AUTH_BASE='https://lubrwnbluclmpoxnkzul.supabase.co/auth/v1/';
+const PROFILE_BASE='https://lubrwnbluclmpoxnkzul.supabase.co/rest/v1/new1984_profiles';
+let cloudSession=null;
+function cloudMessage(message,error=false){const e=document.getElementById('cloud-status');e.textContent=message;e.style.color=error?'#a13b37':'#245c7b';}
+function cloudId(){const id=document.getElementById('cloud-id').value.trim().toLowerCase();return /^[a-z0-9_-]{3,16}$/.test(id)?id:null;}
+async function cloudRequest(url,options={}){const r=await fetch(url,{...options,headers:{apikey:RANKING_KEY,'Content-Type':'application/json',...(options.headers||{})}});let data={};try{data=await r.json()}catch{}if(!r.ok)throw Error(data.msg||data.message||data.error_description||'요청에 실패했습니다.');return data;}
+function cloudHeaders(){return {Authorization:`Bearer ${cloudSession.access_token}`};}
+function setCloudSession(session){cloudSession=session;document.getElementById('cloud-logout').classList.toggle('hidden',!session);}
+async function cloudSignup(){const id=cloudId(),password=document.getElementById('cloud-password').value;if(!id)return cloudMessage('아이디는 영문 소문자, 숫자, _ 또는 -로 3~16자 입력해 주세요.',true);if(password.length<8)return cloudMessage('비밀번호는 8자 이상이어야 합니다.',true);try{cloudMessage('아이디 중복을 확인하고 있어요.');const available=await cloudRequest(`${RANKING_URL}new1984_username_available`,{method:'POST',body:JSON.stringify({p_player_id:id})});if(!available.available)return cloudMessage('이미 사용 중인 아이디예요. 다른 아이디를 선택해 주세요.',true);const a=await cloudRequest(`${AUTH_BASE}signup`,{method:'POST',body:JSON.stringify({email:`${id}@players.new1984.invalid`,password})});const session=a.access_token?a:a.session;if(!session?.access_token)throw Error('계정은 만들어졌지만 이메일 확인이 필요합니다. Supabase Auth에서 이메일 확인을 끄고 다시 로그인해 주세요.');setCloudSession(session);await cloudRequest(`${PROFILE_BASE}?on_conflict=user_id`,{method:'POST',headers:{...cloudHeaders(),Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({user_id:session.user.id,player_id:id,gems:wardrobe.gems,owned:wardrobe.owned,equipped:wardrobe.equipped})});cloudMessage(`계정 ${id}를 만들고 현재 꾸미기 상태를 저장했어요.`);}catch(e){cloudMessage(/already|registered|duplicate/i.test(e.message)?'이미 사용 중인 아이디예요.':e.message,true);}}
+async function cloudLogin(){const id=cloudId(),password=document.getElementById('cloud-password').value;if(!id||!password)return cloudMessage('아이디와 비밀번호를 입력해 주세요.',true);try{const s=await cloudRequest(`${AUTH_BASE}token?grant_type=password`,{method:'POST',body:JSON.stringify({email:`${id}@players.new1984.invalid`,password})});setCloudSession(s);cloudMessage(`계정 ${id}에 로그인했습니다.`);}catch{cloudMessage('아이디 또는 비밀번호를 확인해 주세요.',true);}}
+async function cloudSave(){if(!cloudSession)return cloudMessage('먼저 로그인해 주세요.',true);try{await cloudRequest(`${PROFILE_BASE}?on_conflict=user_id`,{method:'POST',headers:{...cloudHeaders(),Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({user_id:cloudSession.user.id,player_id:cloudId(),gems:wardrobe.gems,owned:wardrobe.owned,equipped:wardrobe.equipped})});cloudMessage('현재 로컬 보석과 꾸미기 상태를 클라우드에 저장했어요.');}catch(e){cloudMessage(e.message,true);}}
+async function cloudLoad(){if(!cloudSession)return cloudMessage('먼저 로그인해 주세요.',true);try{const rows=await cloudRequest(`${PROFILE_BASE}?select=player_id,gems,owned,equipped&user_id=eq.${encodeURIComponent(cloudSession.user.id)}&limit=1`,{headers:cloudHeaders()});if(!rows.length)return cloudMessage('저장된 클라우드 상태가 없습니다.',true);const p=rows[0];wardrobe.gems=Math.max(0,Number(p.gems)||0);wardrobe.owned=Array.isArray(p.owned)?p.owned.filter(id=>cosmetics.some(c=>c.id===id)):[];wardrobe.equipped=p.equipped||{};document.getElementById('cloud-id').value=p.player_id;saveWardrobe();renderShop();cloudMessage('클라우드 상태를 불러왔습니다.');}catch(e){cloudMessage(e.message,true);}}
+document.getElementById('cloud-signup').onclick=cloudSignup;document.getElementById('cloud-login').onclick=cloudLogin;document.getElementById('cloud-save').onclick=cloudSave;document.getElementById('cloud-load').onclick=cloudLoad;document.getElementById('cloud-logout').onclick=()=>{setCloudSession(null);cloudMessage('로그아웃했습니다.');};
