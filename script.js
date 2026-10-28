@@ -65,6 +65,7 @@ const planeStatusEl = document.getElementById('active-plane');
 
 planeCards.forEach(card => {
     const selectPlane = () => {
+        if (missionActive) return;
         planeCards.forEach(c => {c.classList.remove('selected'); c.setAttribute('aria-pressed', 'false');});
         card.classList.add('selected');
         card.setAttribute('aria-pressed', 'true');
@@ -79,6 +80,7 @@ planeCards.forEach(card => {
 
 difficultyCards.forEach(card => {
     card.addEventListener('click', () => {
+        if (missionActive) return;
         difficultyCards.forEach(c => {
             c.classList.remove('selected');
             c.setAttribute('aria-pressed', 'false');
@@ -254,6 +256,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 function setPaused(paused) {
+    if (paused && missionActive) saveMission();
     isManuallyPaused = paused;
     pauseOverlay.classList.toggle('hidden', !paused);
     pauseBtn.setAttribute('aria-pressed', String(paused));
@@ -335,6 +338,9 @@ function createParticles(x, y, color, count = 12) {
 }
 
 function startGame() {
+    if (!resumingMission && readSave() && !confirm('새로 출격하면 저장된 작전이 바뀝니다. 새로 시작할까요?')) return;
+    missionActive = true;
+    setSelectionLock(true);
     activePointer = null;
     gameOverScreen.classList.remove('ranking-only');
     rankingResult = null;
@@ -390,7 +396,7 @@ function startGame() {
     updateHUD();
     if (gameInterval) clearInterval(gameInterval);
     gameInterval = setInterval(updateGame, 1000 / 60);
-    showFirstFlightGuide();
+    if (!resumingMission) { saveMission(); showFirstFlightGuide(); }
 }
 
 function updateHUD() {
@@ -463,6 +469,7 @@ function awardEnemyKill(enemy) {
     stageScore += 150;
     addCombatText(enemy.x, enemy.y, `+${earned}`, '#ffdd69');
     maybeDropItem(enemy);
+    if (Math.random() < .24) items.push({x:enemy.x,y:enemy.y,vy:1.5,phase:0,type:'gem',name:'보석 +1',boxColor:'#9b60ff',ribbonColor:'#e5ceff'});
     updateHUD();
 }
 
@@ -579,8 +586,10 @@ function defeatBoss() {
     addScore(2500);
     createParticles(boss.x, boss.y, '#f59e0b', 50);
     boss = null;
+    wardrobe.gems += 5; saveWardrobe();
     stageScore = 0;
     currentStage++;
+    saveMission();
     if (stageProgressFill) stageProgressFill.style.width = '0%';
 
     if (currentStage > 100) {
@@ -753,6 +762,7 @@ function drawBackdrop() {
 function updateGame() {
     if (isPausedForBanner || isManuallyPaused) return;
     frameCount++;
+    if (frameCount % 120 === 0) saveMission();
 
     if (isMouseDown) {
         player.x += (mouseX - player.x) * 0.2;
@@ -1032,7 +1042,7 @@ function updateGame() {
         ctx.fillStyle = item.ribbonColor;
         ctx.fillRect(item.x - 3, item.y - 12+bobY, 6, 24);
         ctx.fillRect(item.x - 12, item.y - 3+bobY, 24, 6);
-        ctx.fillStyle = '#fff'; ctx.strokeStyle = '#102b40'; ctx.lineWidth = 3; ctx.font = 'bold 12px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; const symbol = ({life:'♥',shield:'S',missile:'↑',coin:'W',power:'P',bomb:'B',bonus:'+'})[item.type] || '+'; ctx.strokeText(symbol,item.x,item.y+bobY+1); ctx.fillText(symbol,item.x,item.y+bobY+1);
+        ctx.fillStyle = '#fff'; ctx.strokeStyle = '#102b40'; ctx.lineWidth = 3; ctx.font = 'bold 12px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; const symbol = ({gem:'◆',life:'♥',shield:'S',missile:'↑',coin:'W',power:'P',bomb:'B',bonus:'+'})[item.type] || '+'; ctx.strokeText(symbol,item.x,item.y+bobY+1); ctx.fillText(symbol,item.x,item.y+bobY+1);
         ctx.restore();
 
         if (Math.hypot(player.x - item.x, player.y - item.y) < 28) {
@@ -1047,7 +1057,9 @@ function updateGame() {
             }
             createParticles(item.x, item.y, '#38bdf8', 12);
             items.splice(iIndex, 1);
-            if (item.type === 'life') {
+            if (item.type === 'gem') {
+                wardrobe.gems++; saveWardrobe(); saveMission();
+            } else if (item.type === 'life') {
                 lives = Math.min(5, lives + 1);
                 addScore(100);
                 createParticles(player.x, player.y, '#ff7184', 18);
@@ -1075,6 +1087,7 @@ function updateGame() {
         }
     }
 
+    drawCosmetics(ctx, player.x, player.y, 1, frameCount);
     let pColor = getPlaneColor(selectedPlaneType);
     if (hitCooldown === 0 || Math.floor(hitCooldown / 5) % 2 === 0) drawAircraft(player.x, player.y, 1.0, pColor, false, selectedPlaneType);
     if (combo >= 3 && comboTimer > 0) { ctx.save(); ctx.textAlign='center'; ctx.font='bold 13px Orbitron, sans-serif'; ctx.fillStyle='#f1dca8'; ctx.shadowColor='#d7b875'; ctx.shadowBlur=10; ctx.fillText(`${combo} HIT COMBO`, player.x, player.y + 42); ctx.restore(); }
@@ -1224,6 +1237,7 @@ function endMissionEarly() {
     if (gameScreen.classList.contains('hidden')) return;
     const shouldEnd = window.confirm('현재 작전을 종료하고 결과 화면으로 돌아갈까요? 지금까지의 점수는 결과 화면에서 랭킹에 등록할 수 있습니다.');
     if (!shouldEnd) return;
+    finishMission();
     clearTimeout(stageBannerTimeout);
     clearTimeout(pickupNoticeTimeout);
     clearInterval(gameInterval);
@@ -1245,6 +1259,7 @@ function endMissionEarly() {
 }
 
 function gameOver() {
+    finishMission();
     if (gameScreen.classList.contains('hidden')) return;
     playSound('hit');
     clearTimeout(stageBannerTimeout);
@@ -1263,6 +1278,7 @@ function gameOver() {
 }
 
 function gameClear() {
+    finishMission();
     clearTimeout(stageBannerTimeout);
     clearTimeout(pickupNoticeTimeout);
     clearInterval(gameInterval);
@@ -1318,6 +1334,11 @@ if (rankingBackBtn) rankingBackBtn.addEventListener('click', () => {
 });
 
 function returnToStart() {
+    saveMission();
+    missionActive = false; setSelectionLock(false); refreshContinue();
+    planeCards.forEach(c=>{c.classList.toggle('selected',c.dataset.plane===selectedPlaneType);c.setAttribute('aria-pressed',String(c.dataset.plane===selectedPlaneType));});
+    difficultyCards.forEach(c=>{c.classList.toggle('selected',c.dataset.difficulty===selectedDifficulty);c.setAttribute('aria-pressed',String(c.dataset.difficulty===selectedDifficulty));});
+    document.getElementById('difficulty-score-note').textContent=`획득 점수 ${getDifficulty().scoreMultiplier}배 · 통합 랭킹`;renderPlanePreviews();
     clearInterval(gameInterval); clearTimeout(stageBannerTimeout); clearTimeout(pickupNoticeTimeout);
     gameScreen.classList.add('hidden'); gameOverScreen.classList.add('hidden');
     gameOverScreen.classList.remove('ranking-only'); startScreen.classList.remove('hidden');
@@ -1356,6 +1377,60 @@ renderPlanePreviews();
 // Keep the current mission when the player cancels leaving it.
 document.getElementById('game-home-btn').addEventListener('click', () => {
     if (gameScreen.classList.contains('hidden')) return;
-    if (!window.confirm('게임을 종료하고 처음 화면으로 돌아갈까요? 현재 점수는 랭킹에 등록되지 않습니다.')) return;
+    if (!window.confirm('진행 상황을 저장하고 처음 화면으로 돌아갈까요?')) return;
     returnToStart();
 });
+
+
+// Local profile and mission snapshots are versioned independently.
+const PROFILE_KEY = 'skyRaiders84WardrobeV1', MISSION_KEY = 'skyRaiders84MissionV1';
+let missionActive = false, resumingMission = false;
+function readLocal(key) { try { return JSON.parse(localStorage.getItem(key)); } catch { return null; } }
+const storedWardrobe = readLocal(PROFILE_KEY);
+const wardrobe = {gems: Math.max(0, Number(storedWardrobe?.gems) || 0), owned: Array.isArray(storedWardrobe?.owned) ? storedWardrobe.owned : [], equipped: storedWardrobe?.equipped || {}};
+const cosmetics = [
+ {id:'aqua',slot:'trail',name:'오로라 궤적',price:15,color:'#53fff0',desc:'청록빛 리본과 반짝이는 입자'},
+ {id:'flame',slot:'trail',name:'태양 불꽃',price:30,color:'#ff9644',desc:'길게 타오르는 황금빛 불꽃'},
+ {id:'galaxy',slot:'trail',name:'은하수',price:50,color:'#c78aff',desc:'보랏빛과 분홍빛 별가루'},
+ {id:'halo',slot:'aura',name:'네온 후광',price:25,color:'#65dcff',desc:'기체를 감싸는 푸른 광륜'},
+ {id:'crown',slot:'wings',name:'황금 날개',price:40,color:'#ffdc79',desc:'양옆으로 펼쳐지는 빛의 날개'},
+ {id:'stars',slot:'aura',name:'별의 수호자',price:60,color:'#ffc7fa',desc:'비행기 주위를 도는 빛나는 별'}
+];
+function storageWrite(key,value) { try {localStorage.setItem(key,JSON.stringify(value)); return true;} catch {document.getElementById('save-status').textContent='저장 공간을 사용할 수 없습니다. 브라우저 설정을 확인해 주세요.'; return false;} }
+function saveWardrobe() {storageWrite(PROFILE_KEY,wardrobe); document.getElementById('gem-count').textContent=wardrobe.gems; document.getElementById('hud-gems').textContent=wardrobe.gems;}
+function setSelectionLock(locked) { [...planeCards,...difficultyCards].forEach(c=>c.disabled=locked); }
+function readSave() {const s=readLocal(MISSION_KEY); return s?.version===1 && difficultySettings[s.difficulty] && planeSpecs[s.plane] && s.currentStage>=1 && s.currentStage<=100 && s.lives>0 ? s : null;}
+function saveMission() {
+ if(!missionActive || lives<=0 || currentStage>100) return;
+ const data={version:1,plane:selectedPlaneType,difficulty:selectedDifficulty,score,lives,bombs,bulletCount,power,currentStage,stageScore,combo,bestCombo,kills,comboTimer,hitCooldown,killsWithoutItem,missileAmmo,shieldHits,player,bullets,enemyBullets,enemies,items,missiles,boss,frameCount,shootTimer,spawnTimer,pickupCount};
+ if(storageWrite(MISSION_KEY,data)) document.getElementById('save-status').textContent='진행 상황 자동 저장 · 같은 브라우저에서 이어할 수 있어요';
+}
+function finishMission() {missionActive=false; setSelectionLock(false); try {localStorage.removeItem(MISSION_KEY);} catch {} refreshContinue();}
+function refreshContinue() {const s=readSave(),b=document.getElementById('continue-btn'); b.classList.toggle('hidden',!s); if(s)b.textContent=`${s.currentStage}단계 이어하기 · ${Number(s.score).toLocaleString('ko-KR')}점`;}
+document.getElementById('continue-btn').onclick=()=>{
+ const s=readSave(); if(!s)return;
+ selectedPlaneType=s.plane;selectedDifficulty=s.difficulty;resumingMission=true;startGame();resumingMission=false;
+ ({score,lives,bombs,bulletCount,power,currentStage,stageScore,combo,bestCombo,kills,comboTimer,hitCooldown,killsWithoutItem,missileAmmo,shieldHits,player,bullets,enemyBullets,enemies,items,missiles,boss,frameCount,shootTimer,spawnTimer,pickupCount}=s);
+ keys={};activePointer=null;isMouseDown=false;mouseX=player.x;mouseY=player.y;hitCooldown=Math.max(120,hitCooldown);updateHUD();setPaused(true);saveMission();
+};
+window.addEventListener('pagehide',saveMission);
+document.addEventListener('visibilitychange',()=>{if(document.hidden && missionActive){saveMission();setPaused(true);}});
+function drawCosmetics(c,x,y,scale,t) {
+ c.save();c.translate(x,y);c.scale(scale,scale);
+ for(const part of cosmetics.filter(p=>wardrobe.owned.includes(p.id)&&wardrobe.equipped[p.slot]===p.id)){
+ c.strokeStyle=part.color;c.fillStyle=part.color;c.shadowColor=part.color;c.shadowBlur=14;c.lineWidth=2;
+ if(part.slot==='trail'){
+  for(let i=0;i<3;i++){c.beginPath();c.moveTo((i-1)*7,18);for(let j=0;j<12;j++)c.lineTo((i-1)*7+Math.sin(t*.08+j*.55+i)*j*.9,18+j*6);c.globalAlpha=.7-i*.12;c.stroke();}
+  for(let i=0;i<12;i++){const v=(t*1.7+i*9)%100;c.globalAlpha=1-v/100;c.beginPath();c.arc(Math.sin(i*4+t*.025)*v*.24,22+v,1.5+(i%2),0,Math.PI*2);c.fill();}
+ } else if(part.slot==='wings') {c.globalAlpha=.8;for(const side of [-1,1])for(let i=0;i<4;i++){c.beginPath();c.moveTo(side*15,i*4);c.lineTo(side*(48-i*6),-14+i*7);c.lineTo(side*24,20);c.stroke();}}
+ else {c.globalAlpha=.75; c.beginPath();c.ellipse(0,4,39,30,Math.sin(t*.02)*.3,0,Math.PI*2);c.stroke();for(let i=0;i<5;i++){const a=t*.025+i*Math.PI*2/5;c.font='15px sans-serif';c.fillText('✦',Math.cos(a)*39-6,Math.sin(a)*30+8);}}
+ c.globalAlpha=1;
+ }c.restore();
+}
+const shop=document.getElementById('shop-overlay');
+function renderShop(){saveWardrobe();const list=document.getElementById('shop-items');list.replaceChildren();for(const p of cosmetics){const owned=wardrobe.owned.includes(p.id),equipped=wardrobe.equipped[p.slot]===p.id;const card=document.createElement('article');card.className='shop-item';const title=document.createElement('h3');title.textContent=p.name;title.style.color=p.color;const desc=document.createElement('p');desc.textContent=p.desc;const b=document.createElement('button');b.className='utility-btn';b.textContent=equipped?'장착 해제':owned?'장착하기':`◆ ${p.price} 구매`;b.disabled=!owned&&wardrobe.gems<p.price;b.onclick=()=>{if(!owned){if(wardrobe.gems<p.price)return;wardrobe.gems-=p.price;wardrobe.owned.push(p.id);}wardrobe.equipped[p.slot]=equipped?null:p.id;saveWardrobe();renderShop();};card.append(title,desc,b);list.append(card);}}
+document.getElementById('shop-btn').onclick=()=>{renderShop();shop.classList.remove('hidden');document.getElementById('shop-close').focus();};
+document.getElementById('shop-close').onclick=()=>{shop.classList.add('hidden');document.getElementById('shop-btn').focus();};
+shop.addEventListener('keydown',e=>{if(e.key==='Escape')document.getElementById('shop-close').click();if(e.key==='Tab'){const buttons=[...shop.querySelectorAll('button:not(:disabled)')];if(e.shiftKey&&document.activeElement===buttons[0]){e.preventDefault();buttons.at(-1).focus();}else if(!e.shiftKey&&document.activeElement===buttons.at(-1)){e.preventDefault();buttons[0].focus();}}});
+function animateShopPreview(){const c=document.getElementById('shop-preview').getContext('2d');if(!shop.classList.contains('hidden')){c.clearRect(0,0,320,190);drawCosmetics(c,160,65,1.5,performance.now()/17);paintAircraft(c,160,65,1.5,getPlaneColor(selectedPlaneType),selectedPlaneType,false);}requestAnimationFrame(animateShopPreview);}
+saveWardrobe();refreshContinue();animateShopPreview();
