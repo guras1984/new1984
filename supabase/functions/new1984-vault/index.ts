@@ -7,7 +7,7 @@ const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
 
 const cosmetics: Record<string, string> = {
-  aqua: "trail", flame: "trail", galaxy: "trail", halo: "aura", crown: "wings",
+  comet: "trail", orbit: "aura", prism: "wings", aqua: "trail", flame: "trail", galaxy: "trail", halo: "aura", crown: "wings",
   feather: "wings", sidefins: "wings", engines: "wings", stars: "aura",
 };
 const bytesToHex = (bytes: Uint8Array) => Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
@@ -30,7 +30,7 @@ function cleanProfile(value: unknown) {
   if (!value || typeof value !== "object") throw new Error("INVALID_PROFILE");
   const profile = value as Record<string, unknown>;
   const gems = Number(profile.gems);
-  if (!Number.isInteger(gems) || gems < 0 || gems > 10_000_000 || !Array.isArray(profile.owned) || profile.owned.length > 9 ||
+  if (!Number.isInteger(gems) || gems < 0 || gems > 10_000_000 || !Array.isArray(profile.owned) || profile.owned.length > Object.keys(cosmetics).length ||
       !profile.owned.every((id) => typeof id === "string" && Object.hasOwn(cosmetics, id)) ||
       !profile.equipped || typeof profile.equipped !== "object" || Array.isArray(profile.equipped)) {
     throw new Error("INVALID_PROFILE");

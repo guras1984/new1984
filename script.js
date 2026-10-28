@@ -1402,6 +1402,9 @@ const cosmetics = [
  {id:'feather',slot:'wings',name:'빛깃 날개',price:55,color:'#a8edff',desc:'푸른 깃털이 겹쳐지는 날개'},
  {id:'sidefins',slot:'wings',name:'날개 장식',price:28,color:'#ff8cc6',desc:'날개 끝의 분홍빛 보조 날개'},
  {id:'engines',slot:'wings',name:'쌍발 장식',price:35,color:'#7cf4b0',desc:'양쪽 엔진과 빛나는 배기구'},
+ {id:'comet',slot:'trail',name:'혜성 꼬리',price:65,color:'#a8ddff',desc:'은빛으로 흐르는 긴 혜성 궤적'},
+ {id:'orbit',slot:'aura',name:'행성 고리',price:70,color:'#f5cb89',desc:'기체를 감싸는 두 개의 황금 고리'},
+ {id:'prism',slot:'wings',name:'프리즘 날개',price:75,color:'#bfa9ff',desc:'보랏빛으로 펼쳐지는 수정 날개'},
  {id:'stars',slot:'aura',name:'별의 수호자',price:60,color:'#ffc7fa',desc:'비행기 주위를 도는 빛나는 별'}
 ];
 function storageWrite(key,value) { try {localStorage.setItem(key,JSON.stringify(value)); return true;} catch {document.getElementById('save-status').textContent='저장 공간을 사용할 수 없습니다. 브라우저 설정을 확인해 주세요.'; return false;} }
@@ -1430,6 +1433,8 @@ function drawCosmetics(c,x,y,scale,t) {
  c.save();c.translate(x,y);c.scale(scale,scale);
  for(const part of cosmetics.filter(p=>wardrobe.owned.includes(p.id)&&wardrobe.equipped[p.slot]===p.id)){
  c.strokeStyle=part.color;c.fillStyle=part.color;c.shadowColor=part.color;c.shadowBlur=14;c.lineWidth=2;
+ if(part.id==='orbit'){for(const tilt of [-.45,.45]){c.beginPath();c.ellipse(0,4,43,20,tilt,0,Math.PI*2);c.stroke();}continue;}
+ if(part.id==='prism'){for(const side of [-1,1]){c.beginPath();c.moveTo(side*12,0);c.lineTo(side*49,-15);c.lineTo(side*36,22);c.lineTo(side*18,16);c.closePath();c.globalAlpha=.6;c.fill();c.stroke();}c.globalAlpha=1;continue;}
  if(part.slot==='trail'){
   for(let i=0;i<3;i++){c.beginPath();c.moveTo((i-1)*7,18);for(let j=0;j<12;j++)c.lineTo((i-1)*7+Math.sin(t*.08+j*.55+i)*j*.9,18+j*6);c.globalAlpha=.7-i*.12;c.stroke();}
   for(let i=0;i<12;i++){const v=(t*1.7+i*9)%100;c.globalAlpha=1-v/100;c.beginPath();c.arc(Math.sin(i*4+t*.025)*v*.24,22+v,1.5+(i%2),0,Math.PI*2);c.fill();}
@@ -1439,7 +1444,26 @@ function drawCosmetics(c,x,y,scale,t) {
  }c.restore();
 }
 const shop=document.getElementById('shop-overlay');
-function renderShop(){saveWardrobe();const list=document.getElementById('shop-items');list.replaceChildren();for(const p of cosmetics){const owned=wardrobe.owned.includes(p.id),equipped=wardrobe.equipped[p.slot]===p.id;const card=document.createElement('article');card.className='shop-item';const title=document.createElement('h3');title.textContent=p.name;title.style.color=p.color;const desc=document.createElement('p');desc.textContent=p.desc;const b=document.createElement('button');b.className='utility-btn';b.textContent=equipped?'장착 해제':owned?'장착하기':`◆ ${p.price} 구매`;b.disabled=!owned&&wardrobe.gems<p.price;b.onclick=()=>{if(!owned){if(wardrobe.gems<p.price)return;wardrobe.gems-=p.price;wardrobe.owned.push(p.id);}wardrobe.equipped[p.slot]=equipped?null:p.id;saveWardrobe();renderShop();};card.append(title,desc,b);list.append(card);}}
+function renderShop(){
+ saveWardrobe();const list=document.getElementById('shop-items');list.replaceChildren();
+ for(const [slot,label] of [['trail','트레일'],['wings','날개'],['aura','후광']]){
+  const section=document.createElement('section');section.className='shop-category';
+  const heading=document.createElement('h3');heading.textContent=label;section.append(heading);
+  const rail=document.createElement('div');rail.className='shop-rail';rail.tabIndex=0;rail.setAttribute('aria-label',label+' 상품 · 좌우로 넘겨 보기');
+  for(const p of cosmetics.filter(p=>p.slot===slot)){
+   const owned=wardrobe.owned.includes(p.id),equipped=wardrobe.equipped[p.slot]===p.id;
+   const card=document.createElement('article');card.className='shop-item';card.style.setProperty('--item-color',p.color);
+   const icon=document.createElement('div');icon.className='shop-item-symbol';icon.textContent=slot==='trail'?'⌁':slot==='wings'?'⋈':'◎';icon.setAttribute('aria-hidden','true');
+   const title=document.createElement('h4');title.textContent=p.name;
+   const desc=document.createElement('p');desc.textContent=p.desc;
+   const button=document.createElement('button');button.className='utility-btn';button.textContent=equipped?'장착 해제':owned?'장착하기':`◆ ${p.price} 구매`;button.disabled=!owned&&wardrobe.gems<p.price;
+   button.onclick=()=>{if(!owned){if(wardrobe.gems<p.price)return;wardrobe.gems-=p.price;wardrobe.owned.push(p.id);}wardrobe.equipped[p.slot]=equipped?null:p.id;saveWardrobe();const offsets=[...list.querySelectorAll('.shop-rail')].map(r=>r.scrollLeft);renderShop();list.querySelectorAll('.shop-rail').forEach((r,i)=>r.scrollLeft=offsets[i]);};
+   card.append(icon,title,desc,button);rail.append(card);
+  }
+  section.append(rail);list.append(section);
+ }
+}
+document.getElementById('shop-save-toggle').onclick=()=>{const panel=document.getElementById('shop-cloud-panel');const open=panel.classList.contains('hidden');panel.classList.toggle('hidden',!open);document.getElementById('shop-save-toggle').setAttribute('aria-expanded',String(open));if(open)panel.scrollIntoView({behavior:'smooth',block:'nearest'});};
 document.getElementById('shop-btn').onclick=()=>{renderShop();shop.classList.remove('hidden');document.getElementById('shop-close').focus();};
 document.getElementById('shop-close').onclick=()=>{shop.classList.add('hidden');document.getElementById('shop-btn').focus();};
 shop.addEventListener('keydown',e=>{if(e.key==='Escape')document.getElementById('shop-close').click();if(e.key==='Tab'){const buttons=[...shop.querySelectorAll('button:not(:disabled)')];if(e.shiftKey&&document.activeElement===buttons[0]){e.preventDefault();buttons.at(-1).focus();}else if(!e.shiftKey&&document.activeElement===buttons.at(-1)){e.preventDefault();buttons[0].focus();}}});
