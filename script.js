@@ -1456,8 +1456,22 @@ async function cloudSave(){if(!cloudSession)return cloudMessage('먼저 로그�
 async function cloudLoad(){if(!cloudSession)return cloudMessage('먼저 로그인해 주세요.',true);try{const rows=await cloudRequest(`${PROFILE_BASE}?select=player_id,gems,owned,equipped&user_id=eq.${encodeURIComponent(cloudSession.user.id)}&limit=1`,{headers:cloudHeaders()});if(!rows.length)return cloudMessage('저장된 클라우드 상태가 없습니다.',true);const p=rows[0];wardrobe.gems=Math.max(0,Number(p.gems)||0);wardrobe.owned=Array.isArray(p.owned)?p.owned.filter(id=>cosmetics.some(c=>c.id===id)):[];wardrobe.equipped=p.equipped||{};document.getElementById('cloud-id').value=p.player_id;saveWardrobe();renderShop();cloudMessage('클라우드 상태를 불러왔습니다.');}catch(e){cloudMessage(e.message,true);}}
 let cloudAuthMode='login';
 function setCloudAuthMode(mode){cloudAuthMode=mode;const login=mode==='login',signup=mode==='signup',recover=mode==='recover';document.getElementById('cloud-auth-title').textContent=login?'아이디 로그인':signup?'계정 만들기':'비밀번호 재설정';document.getElementById('cloud-auth-description').textContent=login?'로그인하면 다른 기기에서도 보석과 꾸미기 상태를 사용할 수 있어요.':signup?'아이디와 이메일을 등록해 계정을 만들어 주세요. 이메일 인증 후 이용할 수 있습니다.':'가입할 때 등록한 이메일로 재설정 링크를 보내드려요.';document.getElementById('cloud-email-field').classList.toggle('hidden',login);document.getElementById('cloud-id').classList.toggle('hidden',recover);document.querySelector('label[for="cloud-id"]').classList.toggle('hidden',recover);document.getElementById('cloud-password').classList.toggle('hidden',recover);document.querySelector('label[for="cloud-password"]').classList.toggle('hidden',recover);document.getElementById('cloud-login').classList.toggle('hidden',!login);document.getElementById('cloud-signup').classList.toggle('hidden',!signup);document.getElementById('cloud-recover').classList.toggle('hidden',!recover);document.getElementById('cloud-login-links').classList.toggle('hidden',!login);document.getElementById('back-to-login').classList.toggle('hidden',login);}
-document.getElementById('show-signup').onclick=()=>setCloudAuthMode('signup');document.getElementById('show-recovery').onclick=()=>setCloudAuthMode('recover');document.getElementById('back-to-login').onclick=()=>setCloudAuthMode('login');
-document.getElementById('cloud-save').onclick=cloudSave;document.getElementById('cloud-load').onclick=cloudLoad;document.getElementById('cloud-reset-submit').onclick=cloudResetPassword;document.getElementById('cloud-logout').onclick=()=>{setCloudSession(null);cloudMessage('로그아웃했습니다.');};
-document.getElementById('cloud-login').onclick=async()=>{const b=document.getElementById('cloud-login');b.disabled=true;cloudMessage('로그인 중입니다.');try{await cloudLogin();}finally{b.disabled=false;}};document.getElementById('cloud-signup').onclick=async()=>{const b=document.getElementById('cloud-signup');b.disabled=true;cloudMessage('가입 정보를 확인하고 있어요.');try{await cloudSignup();}finally{b.disabled=false;}};document.getElementById('cloud-recover').onclick=async()=>{const b=document.getElementById('cloud-recover');b.disabled=true;cloudMessage('재설정 이메일을 보내고 있어요.');try{await cloudRecover();}finally{b.disabled=false;}};setCloudAuthMode('login');
+const cloudActions={
+ 'show-signup':()=>setCloudAuthMode('signup'),
+ 'show-recovery':()=>setCloudAuthMode('recover'),
+ 'back-to-login':()=>setCloudAuthMode('login'),
+ 'cloud-save':cloudSave,'cloud-load':cloudLoad,'cloud-reset-submit':cloudResetPassword,
+ 'cloud-logout':()=>{setCloudSession(null);cloudMessage('로그아웃했습니다.');},
+ 'cloud-login':cloudLogin,'cloud-signup':cloudSignup,'cloud-recover':cloudRecover
+};
+document.querySelector('.cloud-account').addEventListener('click',event=>{
+ const button=event.target.closest('button');if(!button||!cloudActions[button.id])return;
+ event.preventDefault();
+ const pending={'cloud-login':'로그인 중입니다.','cloud-signup':'가입 정보를 확인하고 있어요.','cloud-recover':'재설정 이메일을 보내고 있어요.'}[button.id];
+ if(pending)cloudMessage(pending);
+ button.disabled=true;
+ Promise.resolve().then(()=>cloudActions[button.id]()).catch(error=>cloudMessage(error.message||'요청을 처리하지 못했습니다.',true)).finally(()=>{button.disabled=false;});
+});
+setCloudAuthMode('login');
 // Supabase confirmation and recovery links return tokens in the URL fragment.
 (async()=>{const params=new URLSearchParams(location.hash.slice(1));if(!params.has('access_token'))return;const session={access_token:params.get('access_token'),refresh_token:params.get('refresh_token')};try{session.user=await cloudRequest(`${AUTH_BASE}user`,{headers:{Authorization:`Bearer ${session.access_token}`}});setCloudSession(session);history.replaceState(null,'',location.pathname+location.search);if(params.get('type')==='recovery'){document.getElementById('cloud-reset').classList.remove('hidden');cloudMessage('이메일 확인이 완료됐어요. 새 비밀번호를 입력해 주세요.');}else cloudMessage('이메일 인증이 완료됐어요. 이제 아이디로 로그인할 수 있습니다.');}catch{cloudMessage('이메일 인증 링크가 만료됐거나 이미 사용됐습니다.',true);}})();
