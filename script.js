@@ -821,10 +821,8 @@ function updateGame() {
         const b = bullets[index];
         b.y += b.vy;
         if (b.vx) b.x += b.vx;
-        ctx.fillStyle = b.color;
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, b.size, 0, Math.PI * 2);
-        ctx.fill();
+        if(wardrobe.owned.includes(wardrobe.equipped.bullet)){drawCosmeticBullet(ctx,b.x,b.y,b.size,wardrobe.equipped.bullet,frameCount);}else{
+        ctx.fillStyle=b.color;ctx.beginPath();ctx.arc(b.x,b.y,b.size,0,Math.PI*2);ctx.fill();}
 
         if (b.y < 0) bullets.splice(index, 1);
     }
@@ -1090,7 +1088,7 @@ function updateGame() {
         drawAircraft(x,player.y+18,.45,{base:'#26796f',high:'#a9fff0',accent:'#e8ffb1'},false,'standard');
     }
     drawCosmetics(ctx, player.x, player.y, 1, frameCount);
-    let pColor = getPlaneColor(selectedPlaneType);
+    let pColor = cosmeticPaint(getPlaneColor(selectedPlaneType),wardrobe.owned.includes(wardrobe.equipped.paint)?wardrobe.equipped.paint:null);
     if (hitCooldown === 0 || Math.floor(hitCooldown / 5) % 2 === 0) drawAircraft(player.x, player.y, 1.0, pColor, false, selectedPlaneType);
     if (combo >= 3 && comboTimer > 0) { ctx.save(); ctx.textAlign='center'; ctx.font='bold 13px Orbitron, sans-serif'; ctx.fillStyle='#f1dca8'; ctx.shadowColor='#d7b875'; ctx.shadowBlur=10; ctx.fillText(`${combo} 연속 격추`, player.x, player.y + 42); ctx.restore(); }
 
@@ -1405,7 +1403,8 @@ const cosmetics = [
  {id:'comet',slot:'trail',name:'혜성 꼬리',price:65,color:'#a8ddff',desc:'은빛으로 흐르는 긴 혜성 궤적'},
  {id:'orbit',slot:'aura',name:'행성 고리',price:70,color:'#f5cb89',desc:'기체를 감싸는 두 개의 황금 고리'},
  {id:'prism',slot:'wings',name:'프리즘 날개',price:75,color:'#bfa9ff',desc:'보랏빛으로 펼쳐지는 수정 날개'},
- {id:'stars',slot:'aura',name:'별의 수호자',price:60,color:'#ffc7fa',desc:'비행기 주위를 도는 빛나는 별'}
+ {id:'stars',slot:'aura',name:'별의 수호자',price:60,color:'#ffc7fa',desc:'비행기 주위를 도는 빛나는 별'},
+ ...window.EXTRA_COSMETICS
 ];
 function storageWrite(key,value) { try {localStorage.setItem(key,JSON.stringify(value)); return true;} catch {document.getElementById('save-status').textContent='저장 공간을 사용할 수 없습니다. 브라우저 설정을 확인해 주세요.'; return false;} }
 function saveWardrobe() {storageWrite(PROFILE_KEY,wardrobe); refreshVaultStatus(); document.getElementById('gem-count').textContent=wardrobe.gems; document.getElementById('hud-gems').textContent=wardrobe.gems;}
@@ -1429,10 +1428,12 @@ document.getElementById('continue-btn').onclick=()=>{
 };
 window.addEventListener('pagehide',saveMission);
 document.addEventListener('visibilitychange',()=>{if(document.hidden && missionActive){saveMission();setPaused(true);}});
-function drawCosmetics(c,x,y,scale,t) {
+function drawCosmetics(c,x,y,scale,t,previewPart=null) {
  c.save();c.translate(x,y);c.scale(scale,scale);
- for(const part of cosmetics.filter(p=>wardrobe.owned.includes(p.id)&&wardrobe.equipped[p.slot]===p.id)){
+ const equipped=previewPart?{...wardrobe.equipped,[previewPart.slot]:previewPart.id}:wardrobe.equipped;
+ for(const part of cosmetics.filter(p=>(wardrobe.owned.includes(p.id)||p.id===previewPart?.id)&&equipped[p.slot]===p.id)){
  c.strokeStyle=part.color;c.fillStyle=part.color;c.shadowColor=part.color;c.shadowBlur=14;c.lineWidth=2;
+ if(drawExtraCosmetic(c,part,t,!!previewPart))continue;
  if(part.id==='orbit'){for(const tilt of [-.45,.45]){c.beginPath();c.ellipse(0,4,43,20,tilt,0,Math.PI*2);c.stroke();}continue;}
  if(part.id==='prism'){for(const side of [-1,1]){c.beginPath();c.moveTo(side*12,0);c.lineTo(side*49,-15);c.lineTo(side*36,22);c.lineTo(side*18,16);c.closePath();c.globalAlpha=.6;c.fill();c.stroke();}c.globalAlpha=1;continue;}
  if(part.slot==='trail'){
@@ -1443,31 +1444,41 @@ function drawCosmetics(c,x,y,scale,t) {
  c.globalAlpha=1;
  }c.restore();
 }
+let shopPreviewPart=null;
 const shop=document.getElementById('shop-overlay');
 function renderShop(){
  saveWardrobe();const list=document.getElementById('shop-items');list.replaceChildren();
- for(const [slot,label] of [['trail','트레일'],['wings','날개'],['aura','후광']]){
+ for(const [slot,label] of [['trail','트레일'],['wings','날개'],['aura','후광'],['paint','기체 도색'],['bullet','탄환 꾸미기']]){
   const section=document.createElement('section');section.className='shop-category';
   const heading=document.createElement('h3');heading.textContent=label;section.append(heading);
   const rail=document.createElement('div');rail.className='shop-rail';rail.tabIndex=0;rail.setAttribute('aria-label',label+' 상품 · 좌우로 넘겨 보기');
   for(const p of cosmetics.filter(p=>p.slot===slot)){
    const owned=wardrobe.owned.includes(p.id),equipped=wardrobe.equipped[p.slot]===p.id;
    const card=document.createElement('article');card.className='shop-item';card.style.setProperty('--item-color',p.color);
-   const icon=document.createElement('div');icon.className='shop-item-symbol';icon.textContent=slot==='trail'?'⌁':slot==='wings'?'⋈':'◎';icon.setAttribute('aria-hidden','true');
+   const icon=document.createElement('div');icon.className='shop-item-symbol';icon.textContent=slot==='trail'?'⌁':slot==='wings'?'⋈':slot==='paint'?'◈':slot==='bullet'?'✦':'◎';icon.setAttribute('aria-hidden','true');
    const title=document.createElement('h4');title.textContent=p.name;
    const desc=document.createElement('p');desc.textContent=p.desc;
    const button=document.createElement('button');button.className='utility-btn';button.textContent=equipped?'장착 해제':owned?'장착하기':`◆ ${p.price} 구매`;button.disabled=!owned&&wardrobe.gems<p.price;
    button.onclick=()=>{if(!owned){if(wardrobe.gems<p.price)return;wardrobe.gems-=p.price;wardrobe.owned.push(p.id);}wardrobe.equipped[p.slot]=equipped?null:p.id;saveWardrobe();const offsets=[...list.querySelectorAll('.shop-rail')].map(r=>r.scrollLeft);renderShop();list.querySelectorAll('.shop-rail').forEach((r,i)=>r.scrollLeft=offsets[i]);};
-   card.append(icon,title,desc,button);rail.append(card);
+   const previewButton=document.createElement('button');previewButton.className='text-button';previewButton.textContent='미리보기';previewButton.onclick=()=>{shopPreviewPart=p;document.getElementById('shop-preview-label').textContent=p.name+' 미리보기 · 구매 전';document.getElementById('shop-preview').scrollIntoView({behavior:'smooth',block:'nearest'});};
+   card.append(icon,title,desc,previewButton,button);rail.append(card);
   }
   section.append(rail);list.append(section);
  }
 }
 document.getElementById('shop-save-toggle').onclick=()=>{const panel=document.getElementById('shop-cloud-panel');const open=panel.classList.contains('hidden');panel.classList.toggle('hidden',!open);document.getElementById('shop-save-toggle').setAttribute('aria-expanded',String(open));if(open)panel.scrollIntoView({behavior:'smooth',block:'nearest'});};
-document.getElementById('shop-btn').onclick=()=>{renderShop();shop.classList.remove('hidden');document.getElementById('shop-close').focus();};
+document.getElementById('shop-btn').onclick=()=>{shopPreviewPart=null;document.getElementById('shop-preview-label').textContent='현재 장착한 꾸미기';renderShop();shop.classList.remove('hidden');document.getElementById('shop-close').focus();};
 document.getElementById('shop-close').onclick=()=>{shop.classList.add('hidden');document.getElementById('shop-btn').focus();};
 shop.addEventListener('keydown',e=>{if(e.key==='Escape')document.getElementById('shop-close').click();if(e.key==='Tab'){const buttons=[...shop.querySelectorAll('button:not(:disabled)')];if(e.shiftKey&&document.activeElement===buttons[0]){e.preventDefault();buttons.at(-1).focus();}else if(!e.shiftKey&&document.activeElement===buttons.at(-1)){e.preventDefault();buttons[0].focus();}}});
-function animateShopPreview(){const c=document.getElementById('shop-preview').getContext('2d');if(!shop.classList.contains('hidden')){c.clearRect(0,0,320,190);drawCosmetics(c,160,65,1.5,performance.now()/17);paintAircraft(c,160,65,1.5,getPlaneColor(selectedPlaneType),selectedPlaneType,false);}requestAnimationFrame(animateShopPreview);}
+function animateShopPreview(){const c=document.getElementById('shop-preview').getContext('2d');if(!shop.classList.contains('hidden')){
+ const t=performance.now()/17,part=shopPreviewPart;
+ c.clearRect(0,0,320,190);drawCosmetics(c,160,90,1.15,t,part);
+ const paint=part?.slot==='paint'?part.id:wardrobe.equipped.paint;
+ paintAircraft(c,160,90,1.15,cosmeticPaint(getPlaneColor(selectedPlaneType),paint),selectedPlaneType,false);
+ const bullet=part?.slot==='bullet'?part.id:wardrobe.equipped.bullet;
+ if(bullet)for(let i=0;i<3;i++)drawCosmeticBullet(c,160,75-(t*2+i*30)%90,4,bullet,t);
+ }requestAnimationFrame(animateShopPreview);}
+
 saveWardrobe();refreshContinue();animateShopPreview();
 
 

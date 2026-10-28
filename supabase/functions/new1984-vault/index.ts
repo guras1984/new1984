@@ -7,8 +7,51 @@ const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
 
 const cosmetics: Record<string, string> = {
-  comet: "trail", orbit: "aura", prism: "wings", aqua: "trail", flame: "trail", galaxy: "trail", halo: "aura", crown: "wings",
-  feather: "wings", sidefins: "wings", engines: "wings", stars: "aura",
+  "aqua": "trail",
+  "flame": "trail",
+  "galaxy": "trail",
+  "halo": "aura",
+  "crown": "wings",
+  "feather": "wings",
+  "sidefins": "wings",
+  "engines": "wings",
+  "comet": "trail",
+  "orbit": "aura",
+  "prism": "wings",
+  "stars": "aura",
+  "rainbow": "trail",
+  "lightning": "trail",
+  "sakura": "trail",
+  "meteor": "trail",
+  "frost": "trail",
+  "angel": "wings",
+  "dragon": "wings",
+  "hologram": "wings",
+  "icewing": "wings",
+  "crescent": "aura",
+  "sunring": "aura",
+  "snowflake": "aura",
+  "magnetic": "aura",
+  "rainbowcrown": "aura",
+  "constellation": "aura",
+  "corona": "aura",
+  "thunderorb": "aura",
+  "butterflies": "aura",
+  "blossom": "aura",
+  "nebula": "aura",
+  "icecrown": "aura",
+  "fireworks": "aura",
+  "dragonspirit": "aura",
+  "pearl": "paint",
+  "obsidian": "paint",
+  "rosegold": "paint",
+  "cosmicpaint": "paint",
+  "starshot": "bullet",
+  "crystalshot": "bullet",
+  "flameshot": "bullet",
+  "boltshot": "bullet",
+  "heartshot": "bullet",
+  "rainbowshot": "bullet"
 };
 const bytesToHex = (bytes: Uint8Array) => Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
 const hexToBytes = (hex: string) => new Uint8Array(hex.match(/.{2}/g)!.map((value) => parseInt(value, 16)));
@@ -38,7 +81,7 @@ function cleanProfile(value: unknown) {
   const owned = [...new Set(profile.owned as string[])];
   const equipped: Record<string, string | null> = {};
   for (const [slot, id] of Object.entries(profile.equipped as Record<string, unknown>)) {
-    if (!["trail", "aura", "wings"].includes(slot) ||
+    if (!["trail", "aura", "wings", "paint", "bullet"].includes(slot) ||
         (id !== null && (typeof id !== "string" || cosmetics[id] !== slot || !owned.includes(id)))) {
       throw new Error("INVALID_PROFILE");
     }
