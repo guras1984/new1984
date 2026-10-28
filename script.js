@@ -1439,7 +1439,7 @@ function animateShopPreview(){const c=document.getElementById('shop-preview').ge
 saveWardrobe();refreshContinue();animateShopPreview();
 
 
-const VAULT_FUNCTION='https://lubrwnbluclmpoxnkzul.supabase.co/functions/v1/new1984-vault';
+const VAULT_FUNCTION='https://lubrwnbluclmpoxnkzul.supabase.co/functions/v1/super-responder';
 let cloudCredentials=null;
 function cloudMessage(message,error=false){const e=document.getElementById('cloud-status');e.textContent=message;e.dataset.state=error?'error':'info';e.setAttribute('aria-live','assertive');}
 function cloudId(){const id=document.getElementById('cloud-id').value.trim().toLowerCase();return /^[a-z0-9_-]{3,16}$/.test(id)?id:null;}
