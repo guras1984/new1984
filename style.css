@@ -240,3 +240,75 @@ html,body{background:radial-gradient(circle at 50% -20%,#fffef4 0%,#c5effc 47%,#
   #start-btn{padding:10px 18px;margin-top:2px}
 }
 @media(max-height:740px) and (min-width:481px){#start-screen{padding-top:38px}.plane-card{min-height:104px;padding:8px}.selection-container{margin-bottom:7px}.hangar-tip{display:none}}
+
+/* Calm flight deck: one visual hierarchy across start, play and results. */
+:root{--gold:#b39458;--cyan:#477891;--white:#182d42}
+body{background:radial-gradient(ellipse at 50% 10%,#fbfbf4,#e1edf1);color:#182d42}
+#game-wrapper{border:1px solid #cddce2;border-radius:18px;background:#f5f8f6;box-shadow:0 15px 55px #293f5520;height:min(840px,calc(100dvh - 24px))}
+#game-wrapper:before{display:none}
+#start-screen{padding:18px 24px 20px;justify-content:center;background:radial-gradient(ellipse at 50% 30%,#fffdf4 0%,#eff5f5 60%,#e3edf1 100%);gap:0;overflow-y:auto}
+#start-screen:before,#start-screen:after{display:none}
+.start-nav{width:100%;display:flex;justify-content:flex-end;align-items:center;gap:0;flex-shrink:0;margin:0 0 12px}
+.start-nav a,.start-nav button{border:0;background:none;box-shadow:none;text-decoration:none;border-radius:0;padding:8px 12px;font:500 12px 'Noto Sans KR',sans-serif;color:#4e6273;cursor:pointer;min-height:36px}
+.start-nav a{border-left:1px solid #bdcad1;padding-right:0}
+.start-nav button:hover,.start-nav a:hover{color:#182d42;text-decoration:underline;text-underline-offset:5px}
+.start-heading{text-align:center;flex-shrink:0}
+.brand-mark{color:#b39458;font-size:22px;margin:0 0 8px}
+.start-heading h1{font:600 clamp(25px,7vw,36px) Georgia,serif;letter-spacing:-1px;margin:0 0 8px;color:#182d42}
+.start-heading h1 span{color:#8c7956}
+.start-heading>p:last-child{font-size:12px;letter-spacing:.02em;color:#6a7c87;margin:0}
+#preview-plane{display:block;width:240px;height:135px;object-fit:contain;flex-shrink:0;margin:4px 0}
+.section-label{font:600 12px 'Noto Sans KR',sans-serif;letter-spacing:.1em;text-align:center;color:#3d5365;margin:8px 0 10px}
+.selection-container{grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin:0;width:100%;flex-shrink:0}
+.plane-card,.plane-card:nth-child(5){grid-column:auto;min-height:0;padding:7px 2px;border:1px solid #ccd7dc;border-radius:10px;background:#ffffff55;box-shadow:none;transform:none;isolation:auto}
+.plane-card:before,.plane-card:after,.plane-card.selected:after{display:none}
+.plane-card:hover,.plane-card.selected{transform:none;border:1px solid #b39458;background:#f6efdf;box-shadow:inset 0 0 0 1px #b3945833}
+.plane-card canvas{display:block;width:48px;height:48px;max-width:100%;margin:auto}
+.plane-card h3{font:500 10px 'Noto Sans KR',sans-serif;margin:4px 0 0;color:#344d5e;letter-spacing:0}
+#start-screen>#plane-description{font:400 11px 'Noto Sans KR',sans-serif;margin:10px 0 14px;color:#617383;text-align:center;min-height:18px;flex-shrink:0}
+.difficulty-panel{border:0;padding:0;margin:0 0 20px;box-shadow:none;background:none;flex-shrink:0}
+.difficulty-panel .section-label{margin:0 0 10px}
+.difficulty-options{border:1px solid #c2ced5;border-radius:999px;padding:3px;gap:3px;background:#ffffff50}
+.difficulty-card{border:0;background:none;border-radius:999px;padding:9px 3px;box-shadow:none}
+.difficulty-card strong{font-size:12px;margin:0;font-weight:500}
+.difficulty-card small{display:none}
+.difficulty-card.selected,.difficulty-card:hover{border:0;background:#213d53;box-shadow:none}
+.difficulty-card.selected strong,.difficulty-card:hover strong{color:#fff}
+.glow-btn,#start-btn{background:#203b51;border:1px solid #203b51;color:#fff;box-shadow:none;border-radius:12px;font:600 14px 'Noto Sans KR',sans-serif;letter-spacing:.04em}
+#start-btn{margin:0;width:100%;padding:14px 22px;flex-shrink:0}
+.glow-btn:hover,#start-btn:hover{box-shadow:none;background:#2e4d65;transform:none;filter:none}
+#start-btn span{margin-left:12px;color:#cfb781}
+#start-screen>.control-hint{font-size:10px;margin:12px 0 0;color:#7d8e99;flex-shrink:0;text-align:center}
+.touch-hint{display:none}
+@media(pointer:coarse){.touch-hint{display:inline}.keyboard-hint{display:none}}
+.utility-btn,.portal-home-link{background:#f0f5f6;border:1px solid #c6d6df;color:#496373;border-radius:10px;box-shadow:none;min-height:40px;text-decoration:none;font:500 12px 'Noto Sans KR',sans-serif}
+.utility-btn span,#controls-panel>.portal-home-link span{font:500 9px 'Noto Sans KR',sans-serif;color:#607a8b;letter-spacing:0}
+#controls-panel{gap:6px;background:#eaf1f3;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));padding:8px;border-top:1px solid #cbdce4}
+#controls-panel>.utility-btn,#controls-panel>.portal-home-link{width:100%;min-width:0;padding:6px 2px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:3px}
+#bomb-btn{grid-column:1/-1;background:#27475f;border:0;box-shadow:none;border-radius:10px;padding:10px;color:white;font:600 12px 'Noto Sans KR',sans-serif}
+#hud{background:#eef4f5;border-color:#c1d5df;color:#435c6e}
+#hud span{color:#283f51}
+#gameover-screen{padding:26px 20px;justify-content:flex-start;overflow-y:auto;background:linear-gradient(#fafbf6,#e7f0f3);gap:0}
+#gameover-screen>*{flex-shrink:0}
+#gameover-screen #gameover-title{font:600 24px 'Noto Sans KR',sans-serif;letter-spacing:0;color:#244258!important;margin:0 0 14px}
+#gameover-screen>p{margin:0 0 10px;font-size:13px}
+#gameover-screen .record-line{font:500 11px 'Noto Sans KR',sans-serif;letter-spacing:0}
+#gameover-screen>.portal-home-link{align-self:flex-end;padding:6px 10px;min-height:30px;font-size:10px;margin-bottom:10px;order:-1;background:transparent;border:0}
+.online-ranking{max-width:none;border:1px solid #cedce2;border-radius:14px;background:#ffffff80;box-shadow:none;padding:14px;margin:10px 0 14px}
+.online-ranking h3{font:600 12px 'Noto Sans KR',sans-serif;letter-spacing:.06em;color:#526d7f;margin-bottom:12px}
+.ranking-list{max-height:none;overflow:visible}
+.ranking-list li.ranking-row{grid-template-columns:24px minmax(0,1fr) auto;padding:12px 0;gap:8px}
+.rank-name{font-size:12px}.rank-sub{font-size:10px;color:#728797}.rank-meta{font:600 12px 'Noto Sans KR',sans-serif;color:#2b475c}.rank-place{color:#a48b57}
+.result-actions{display:grid;grid-template-columns:1fr 1fr;width:100%;gap:8px;flex-shrink:0}
+#restart-btn,#result-home-btn{padding:12px 4px;min-width:0}
+.ranking-only .result-actions{display:none}
+.ranking-only #online-ranking{margin-top:0}
+.ranking-only .ranking-back-btn{display:block}
+#tutorial-overlay{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:#172d4480;backdrop-filter:blur(8px);padding:18px}
+.tutorial-card{width:min(100%,350px);max-height:90dvh;overflow-y:auto;padding:28px 24px;text-align:center;border:1px solid #d7dfdc;border-radius:20px;background:#f5f8f6;box-shadow:0 15px 70px #152d4055}
+.tutorial-card h2{margin:0 0 16px;font-size:21px;font-weight:600}.tutorial-card p{font-size:13px;line-height:1.8;color:#607383}
+.tutorial-demo{font-size:40px;line-height:1.2;color:#294b64;display:flex;flex-direction:column;align-items:center;margin:18px}.tutorial-demo span{font-size:24px;color:#b39458}
+.tutorial-card .glow-btn{width:100%;margin-top:10px;padding:13px}
+.text-button{display:block;margin:10px auto 0;padding:10px 18px;background:none;border:0;color:#617787;font:500 12px 'Noto Sans KR',sans-serif;cursor:pointer}
+@media(max-width:560px){body{padding:0}#game-wrapper{height:100dvh;width:100%;border-radius:0;border:0}#start-screen{padding:14px 16px 20px}#preview-plane{width:230px;height:129px}.start-nav{margin-bottom:16px}}
+@media(max-height:700px){#start-screen{justify-content:flex-start;padding-top:10px;padding-bottom:10px}.start-nav{margin-bottom:5px}.brand-mark{margin:0 0 4px;font-size:17px}#preview-plane{width:180px;height:101px}.start-heading h1{font-size:27px}.start-heading>p:last-child{font-size:11px}.section-label{margin:5px 0 7px}.plane-card canvas{width:38px;height:38px}.plane-card{padding:5px 1px}#start-screen>#plane-description{margin:7px 0 10px}.difficulty-panel{margin-bottom:12px}.difficulty-card{padding:7px 3px}#start-btn{padding:12px}.start-nav a,.start-nav button{min-height:32px;padding-top:5px;padding-bottom:5px}}

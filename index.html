@@ -6,116 +6,48 @@
     <title>SKY RAIDERS ’84 — Aerial Legends</title>
     <link rel="stylesheet" href="style.css">
 
-    <style>
-      /* Portal navigation — independent of game logic */
-      .portal-home-link {
-        display:inline-flex; align-items:center; justify-content:center;
-        gap:5px; padding:9px 12px; min-height:36px;
-        border-radius:10px; border:1px solid #b7d7e3;
-        background:linear-gradient(135deg,#f5fbfd,#e7f3f7);
-        color:#456b7e; text-decoration:none;
-        font:800 12px 'Noto Sans KR',sans-serif;
-        box-shadow:0 2px 6px #0002; white-space:nowrap;
-        transition:filter .15s,transform .15s;
-      }
-      .portal-home-link:hover { filter:brightness(1.07); transform:translateY(-1px); }
-      .portal-home-link:focus-visible { outline:3px solid #ffd166; outline-offset:3px; }
-      #start-screen > .portal-home-link,
-      #gameover-screen > .portal-home-link {
-        position:absolute; top:12px; right:12px; z-index:8;
-      }
-      #start-screen > .portal-home-link { right:12px; }
-      #start-screen > .start-ranking-btn {
-        position:absolute; top:12px; right:132px; z-index:8;
-        min-height:36px; min-width:0; padding:7px 10px;
-        border-radius:10px; font:800 11px 'Noto Sans KR',sans-serif;
-      }
-      #controls-panel > .portal-home-link {
-        flex:0 0 auto; min-width:64px; flex-direction:column;
-        padding:6px 9px; gap:2px; line-height:1.1;
-      }
-      #controls-panel > .portal-home-link span {
-        display:block; margin:0; font:800 10px 'Noto Sans KR',sans-serif;
-        letter-spacing:0; color:#124858;
-      }
-      @media(max-width:480px) {
-        #controls-panel { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; padding:8px; }
-        #controls-panel > .utility-btn,
-        #controls-panel > .portal-home-link { min-width:0; width:100%; min-height:42px; }
-        #controls-panel > #bomb-btn { grid-column:1/-1; min-height:42px; }
-        #start-screen > .portal-home-link,
-        #gameover-screen > .portal-home-link { top:8px; right:8px; padding:7px 9px; font-size:11px; }
-        #start-screen > .start-ranking-btn { top:8px; right:112px; min-height:32px; padding:5px 8px; font-size:10px; }
-      }
-    </style>
+
 
 </head>
 <body>
     <div id="game-wrapper">
         <!-- 시작 화면 -->
         <div id="start-screen" class="screen">
-            <a class="portal-home-link" href="https://guras1984.github.io/webgame/" aria-label="게임 목록으로 돌아가기">🏠 게임 목록</a>
-            <button id="start-ranking-btn" class="utility-btn start-ranking-btn" type="button">🏆 랭킹 보기</button>
-            <div class="edition-label">AERIAL LEGENDS <span>★ DELUXE EDITION ★</span></div>
-            <div class="title-glow">SKY RAIDERS <span>’84</span></div>
-            <p>1984년 아케이드의 긴장감과 현대적인 전술 비행을 하나로.
-            <span class="subtitle-en">ONE PILOT. ONE SQUADRON. 100 STAGES.</span></p>
+            <nav class="start-nav" aria-label="게임 메뉴"><button id="start-ranking-btn" type="button">랭킹 보기</button><a href="https://guras1984.github.io/webgame/">게임 목록</a></nav>
+            <header class="start-heading"><p class="brand-mark" aria-hidden="true">✦</p><h1>SKY RAIDERS <span>’84</span></h1><p>하늘을 지배할 준비가 되셨나요?</p></header>
+            <canvas id="preview-plane" width="320" height="180" aria-label="선택한 비행기 미리보기"></canvas>
+            <h2 class="section-label">기체 선택</h2>
             <div class="selection-container">
-                <div class="plane-card selected" data-plane="standard" tabindex="0" role="button" aria-pressed="true">
-                    <div class="plane-icon">◈</div>
-                    <h3>FALCON / 요격기</h3>
-                    <p>균형 잡힌 다목적 전투기</p>
-                    <span class="plane-special">균형형 · 초보자 추천</span>
-                </div>
-                <div class="plane-card" data-plane="jet" tabindex="0" role="button" aria-pressed="false">
-                    <div class="plane-icon">➤</div>
-                    <h3>VIPER / 애프터버너</h3>
-                    <p>고속 기동 · 집중 화력</p>
-                    <span class="plane-special">이동 속도 ↑ · 연사 ↑</span>
-                </div>
-                <div class="plane-card" data-plane="propeller" tabindex="0" role="button" aria-pressed="false">
-                    <div class="plane-icon">✥</div>
-                    <h3>WRAITH / 건십</h3>
-                    <p>안정적인 연사 지원</p>
-                    <span class="plane-special">최고 연사 속도</span>
-                </div>
-                <div class="plane-card" data-plane="cruiser" tabindex="0" role="button" aria-pressed="false">
-                    <div class="plane-icon">◇</div>
-                    <h3>PHANTOM / 스텔스</h3>
-                    <p>광역 확산 공격 시스템</p>
-                    <span class="plane-special">시작부터 3중 탄막</span>
-                </div>
-                <div class="plane-card" data-plane="copter" tabindex="0" role="button" aria-pressed="false">
-                    <div class="plane-icon">⬡</div>
-                    <h3>AEGIS / 방어기</h3>
-                    <p>실드 강화 · 생존 특화</p>
-                    <span class="plane-special">시작 방어막 2회</span>
-                </div>
+                <button type="button" class="plane-card selected" data-plane="standard" aria-pressed="true"><canvas width="72" height="72" aria-hidden="true"></canvas><h3>요격기</h3></button>
+                <button type="button" class="plane-card" data-plane="jet" aria-pressed="false"><canvas width="72" height="72" aria-hidden="true"></canvas><h3>고속기</h3></button>
+                <button type="button" class="plane-card" data-plane="propeller" aria-pressed="false"><canvas width="72" height="72" aria-hidden="true"></canvas><h3>건십</h3></button>
+                <button type="button" class="plane-card" data-plane="cruiser" aria-pressed="false"><canvas width="72" height="72" aria-hidden="true"></canvas><h3>스텔스</h3></button>
+                <button type="button" class="plane-card" data-plane="copter" aria-pressed="false"><canvas width="72" height="72" aria-hidden="true"></canvas><h3>방어기</h3></button>
             </div>
+            <p id="plane-description" aria-live="polite">요격기 · 속도와 화력의 균형</p>
             <section class="difficulty-panel" aria-label="난이도 선택">
-                <div class="difficulty-heading"><span>MISSION PARAMETERS</span><span>난이도 선택</span></div>
+                <h2 class="section-label">난이도</h2>
                 <div class="difficulty-options">
                     <button type="button" class="difficulty-card" data-difficulty="easy" aria-pressed="false"><strong>쉬움</strong><small>생존 중심 · 목숨 5개</small></button>
                     <button type="button" class="difficulty-card selected" data-difficulty="normal" aria-pressed="true"><strong>보통</strong><small>표준 전투 · 목숨 3개</small></button>
                     <button type="button" class="difficulty-card" data-difficulty="hard" aria-pressed="false"><strong>어려움</strong><small>빠른 적 · 목숨 2개</small></button>
                 </div>
             </section>
-            <div class="mission-note"><span>MISSION 01</span><span>↑ ↓ ← → / WASD 이동</span><span>자동 발사 · SPACE/B 폭탄 · P 일시정지</span></div>
-            <div class="hangar-tip">기체 선택은 전술입니다. 격추 · 회피 · 생존으로 기록을 갱신하세요.</div>
-            <button id="start-btn" class="glow-btn">출격 준비 <span aria-hidden="true">↗</span></button>
+            <button id="start-btn" class="glow-btn">출격하기 <span aria-hidden="true">→</span></button>
+            <p class="control-hint"><span class="touch-hint">화면을 드래그해 이동 · 자동 발사</span><span class="keyboard-hint">방향키 / WASD 이동 · 자동 발사 · SPACE 폭탄</span></p>
         </div>
 
         <!-- 게임 플레이 화면 -->
         <div id="game-screen" class="screen hidden">
             <div id="hud">
-                <div class="hud-item">STAGE <span id="stage">1</span>/100</div>
-                <div class="hud-item aircraft-hud">기체 <span id="active-plane">FALCON</span></div>
+                <div class="hud-item">단계 <span id="stage">1</span>/100</div>
+                <div class="hud-item aircraft-hud">기체 <span id="active-plane">요격기</span></div>
                 <div class="hud-item">점수: <span id="score">0</span></div>
                 <div class="hud-item">목숨: <span id="lives">3</span> ❤️</div>
                 <div class="hud-item">폭탄: <span id="bombs">2</span> 💣</div>
                 <div class="hud-item">무장 <span id="spread">1</span></div>
                 <div class="hud-item missile-hud">유도탄 <span id="missiles">0</span> 🚀</div>
-                <div class="hud-item">COMBO <span id="combo">0</span></div>
+                <div class="hud-item">연속 <span id="combo">0</span></div>
             </div>
             <div id="stage-progress" aria-label="스테이지 진행도"><span id="stage-progress-fill"></span></div>
             <div id="canvas-container">
@@ -128,25 +60,25 @@
                 </div>
             </div>
             <div id="controls-panel">
-                <button id="pause-btn" class="utility-btn" aria-label="일시정지">Ⅱ <span>PAUSE</span></button>
-                <button id="sound-btn" class="utility-btn" aria-label="사운드 켜기/끄기">♫ <span>SOUND</span></button>
+                <button id="pause-btn" class="utility-btn" aria-label="일시정지">Ⅱ <span>일시정지</span></button>
+                <button id="sound-btn" class="utility-btn" aria-label="사운드 켜기/끄기">♫ <span>소리</span></button>
                 <button id="quit-btn" class="utility-btn quit-btn" aria-label="게임 종료">■ <span>종료</span></button>
-                <a class="utility-btn portal-home-link" href="./" aria-label="게임 처음으로 돌아가기">🏠 <span>처음으로</span></a>
-                <button id="bomb-btn" class="glow-btn">TACTICAL STRIKE · 폭탄 투하</button>
+                <a class="utility-btn portal-home-link" href="./" aria-label="게임 처음으로 돌아가기">↶ <span>처음으로</span></a>
+                <button id="bomb-btn" class="glow-btn">폭탄 투하</button>
             </div>
             <div id="pause-overlay" class="hidden" role="dialog" aria-label="일시정지">
-                <div class="pause-card"><span class="eyebrow">FLIGHT SYSTEM</span><h2>MISSION PAUSED</h2><p>작전이 일시 정지되었습니다.</p><button id="resume-btn" class="glow-btn">작전 재개</button></div>
+                <div class="pause-card"><span class="eyebrow">작전 안내</span><h2>일시정지</h2><p>작전이 일시 정지되었습니다.</p><button id="resume-btn" class="glow-btn">작전 재개</button></div>
             </div>
         </div>
 
         <!-- 게임 클리어 / 오버 화면 -->
         <div id="gameover-screen" class="screen hidden">
-            <h2 id="gameover-title">GAME OVER</h2>
+            <h2 id="gameover-title">작전 종료</h2>
             <p>최종 점수: <span id="final-score">0</span></p>
             <p class="result-stats">최고 콤보 <span id="final-combo">0</span> · 격추 <span id="final-kills">0</span></p>
-            <p class="record-line">PERSONAL BEST <span id="best-score">0</span></p>
+            <p class="record-line">최고 기록 <span id="best-score">0</span></p>
             <section id="online-ranking" class="online-ranking" aria-label="온라인 랭킹">
-                <h3>🏆 ONLINE TOP 10</h3>
+                <h3>상위 10위</h3>
                 <button id="ranking-back-btn" type="button" class="utility-btn ranking-back-btn">← 처음 화면</button>
                 <div class="rank-submit">
                     <input id="rank-nickname" type="text" maxlength="12" autocomplete="nickname" placeholder="닉네임 (최대 12자)" aria-label="랭킹 닉네임">
@@ -155,9 +87,12 @@
                 <p id="rank-status" class="rank-status" aria-live="polite">랭킹 연결을 준비 중입니다.</p>
                 <ol id="ranking-list" class="ranking-list"><li>랭킹을 불러오는 중...</li></ol>
             </section>
-            <a class="portal-home-link" href="https://guras1984.github.io/webgame/" aria-label="게임 목록으로 돌아가기">🏠 게임 목록</a>
-            <button id="restart-btn" class="glow-btn">다시 도전하기</button>
+            <a class="portal-home-link" href="https://guras1984.github.io/webgame/" aria-label="게임 목록으로 돌아가기">게임 목록</a>
+            <div class="result-actions"><button id="restart-btn" class="glow-btn">다시 출격</button><button id="result-home-btn" class="utility-btn">처음으로</button></div>
         </div>
+    </div>
+    <div id="tutorial-overlay" class="hidden" role="dialog" aria-modal="true" aria-labelledby="tutorial-title">
+      <div class="tutorial-card"><p class="brand-mark">✦</p><h2 id="tutorial-title">첫 비행 안내</h2><p class="touch-hint">화면을 누른 채 움직여 보세요.<br>비행기는 손가락 위쪽에서 따라옵니다.</p><p class="keyboard-hint">방향키 또는 WASD로 이동합니다.<br>SPACE 또는 B로 폭탄을 사용하세요.</p><div class="tutorial-demo" aria-hidden="true">✈<span>↕</span>◎</div><p>공격은 자동입니다.<br>붉은 탄환은 피하고, 표시가 있는 보급품을 획득하세요.</p><button id="tutorial-start-btn" class="glow-btn">알겠어요, 출격</button><button id="tutorial-skip-btn" class="text-button">건너뛰기</button></div>
     </div>
     <script src="script.js"></script>
 </body>

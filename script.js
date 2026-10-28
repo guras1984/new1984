@@ -55,11 +55,11 @@ const difficultySettings = {
     hard:   { spawnInterval: 0.78, enemySpeed: 1.28, enemyHp: 1.35, bossHp: 1.45, lives: 2, bulletSpeed: 1.25 }
 };
 const planeSpecs = {
-    standard:  { speed: 6.5, fireDelay: 9, initialSpread: 1, shield: 0, name: 'FALCON' },
-    jet:       { speed: 8.2, fireDelay: 7, initialSpread: 1, shield: 0, name: 'VIPER' },
-    propeller: { speed: 6.1, fireDelay: 6, initialSpread: 1, shield: 0, name: 'WRAITH' },
-    cruiser:   { speed: 5.8, fireDelay: 10, initialSpread: 3, shield: 0, name: 'PHANTOM' },
-    copter:    { speed: 5.6, fireDelay: 10, initialSpread: 1, shield: 2, name: 'AEGIS' }
+    standard:  { speed: 6.5, fireDelay: 9, initialSpread: 1, shield: 0, name: '요격기' },
+    jet:       { speed: 8.2, fireDelay: 7, initialSpread: 1, shield: 0, name: '고속기' },
+    propeller: { speed: 6.1, fireDelay: 6, initialSpread: 1, shield: 0, name: '건십' },
+    cruiser:   { speed: 5.8, fireDelay: 10, initialSpread: 3, shield: 0, name: '스텔스' },
+    copter:    { speed: 5.6, fireDelay: 10, initialSpread: 1, shield: 2, name: '방어기' }
 };
 const planeStatusEl = document.getElementById('active-plane');
 
@@ -69,6 +69,7 @@ planeCards.forEach(card => {
         card.classList.add('selected');
         card.setAttribute('aria-pressed', 'true');
         selectedPlaneType = card.dataset.plane;
+        renderPlanePreviews();
     };
     card.addEventListener('click', selectPlane);
     card.addEventListener('keydown', e => {
@@ -231,6 +232,7 @@ let mouseY = player.y;
 let isMouseDown = false;
 
 window.addEventListener('keydown', e => {
+    if (!document.getElementById('tutorial-overlay').classList.contains('hidden')) return;
     if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code) && !gameScreen.classList.contains('hidden')) e.preventDefault();
     if (e.repeat || ['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
     if ((e.code === 'KeyP' || e.code === 'Escape') && !gameScreen.classList.contains('hidden')) togglePause();
@@ -248,7 +250,7 @@ function setPaused(paused) {
     isManuallyPaused = paused;
     pauseOverlay.classList.toggle('hidden', !paused);
     pauseBtn.setAttribute('aria-pressed', String(paused));
-    pauseBtn.innerHTML = paused ? '▶ <span>RESUME</span>' : 'Ⅱ <span>PAUSE</span>';
+    pauseBtn.innerHTML = paused ? '▶ <span>계속</span>' : 'Ⅱ <span>일시정지</span>';
 }
 function togglePause() {
     if (isPausedForBanner || gameScreen.classList.contains('hidden')) return;
@@ -257,33 +259,33 @@ function togglePause() {
 function toggleSound() {
     soundMuted = !soundMuted;
     soundBtn.setAttribute('aria-pressed', String(soundMuted));
-    soundBtn.innerHTML = soundMuted ? '× <span>MUTED</span>' : '♫ <span>SOUND</span>';
+    soundBtn.innerHTML = soundMuted ? '× <span>음소거</span>' : '♫ <span>소리</span>';
 }
 
-canvas.addEventListener('mousemove', e => {
-    if (isPausedForBanner) return;
+// Pointer Events avoid synthetic mouse events replacing the touch offset.
+let activePointer = null;
+function aimAtPointer(e) {
     const rect = canvas.getBoundingClientRect();
-    mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
-    mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
+    const offset = e.pointerType === 'mouse' ? 0 : 76;
+    mouseX = (e.clientX - rect.left) * canvas.width / rect.width;
+    mouseY = (e.clientY - rect.top - offset) * canvas.height / rect.height;
     isMouseDown = true;
-});
-
+}
 canvas.addEventListener('pointerdown', e => {
-    if (e.pointerType === 'touch') {
-        const rect = canvas.getBoundingClientRect();
-        mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
-        mouseY = (e.clientY - rect.top) * (canvas.height / rect.height) - 48;
-        isMouseDown = true;
-    }
+    if (isManuallyPaused || isPausedForBanner || activePointer !== null) return;
+    activePointer = e.pointerId;
+    canvas.setPointerCapture(e.pointerId);
+    aimAtPointer(e);
+    if (e.pointerType !== 'mouse') { player.x = Math.max(24, Math.min(canvas.width-24, mouseX)); player.y = Math.max(30, Math.min(canvas.height-30, mouseY)); }
 });
 canvas.addEventListener('pointermove', e => {
-    if (e.pointerType !== 'touch' || isPausedForBanner) return;
-    const rect = canvas.getBoundingClientRect();
-    mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
-    mouseY = (e.clientY - rect.top) * (canvas.height / rect.height) - 48;
+    if (isPausedForBanner || isManuallyPaused) return;
+    if (e.pointerType === 'mouse' && activePointer === null || e.pointerId === activePointer) aimAtPointer(e);
 });
-canvas.addEventListener('pointerup', e => { if (e.pointerType === 'touch') isMouseDown = false; });
-canvas.addEventListener('pointercancel', e => { if (e.pointerType === 'touch') isMouseDown = false; });
+function releasePointer(e) { if(e.pointerId === activePointer) { activePointer = null; isMouseDown = false; } }
+canvas.addEventListener('pointerup', releasePointer);
+canvas.addEventListener('pointercancel', releasePointer);
+canvas.addEventListener('lostpointercapture', releasePointer);
 
 function getPlaneIcon(type) {
     switch(type) {
@@ -326,6 +328,8 @@ function createParticles(x, y, color, count = 12) {
 }
 
 function startGame() {
+    activePointer = null;
+    gameOverScreen.classList.remove('ranking-only');
     rankingResult = null;
     rankingSubmitted = false;
     if (submitRankBtn) submitRankBtn.disabled = false;
@@ -379,6 +383,7 @@ function startGame() {
     updateHUD();
     if (gameInterval) clearInterval(gameInterval);
     gameInterval = setInterval(updateGame, 1000 / 60);
+    showFirstFlightGuide();
 }
 
 function updateHUD() {
@@ -618,56 +623,31 @@ function draw3DShape(ctx, x, y, radius, baseColor, highlightColor, icon) {
 }
 
 // 1984-inspired vector aircraft: layered fuselage, swept wings, cockpit and engine glow.
-function drawAircraft(x, y, scale, colors, enemy = false, variant = 'standard') {
-    ctx.save(); ctx.translate(x, y); if (enemy) ctx.rotate(Math.PI); ctx.scale(scale, scale);
-    const base = colors.base || '#9daeb8', hi = colors.high || '#f0f3e9', accent = colors.accent || '#d7b875';
-    if (!enemy) {
-        // Animated twin engine flames trail behind the player's aircraft.
-        // The flicker is based on the current time so it animates smoothly without extra timers.
-        const flicker = (Math.sin(Date.now() / 48) + 1) / 2;
-        ctx.save();
-        ctx.globalCompositeOperation = 'lighter';
-        const glow = ctx.createRadialGradient(0, 23, 1, 0, 23, 31);
-        glow.addColorStop(0, '#ffbd55aa'); glow.addColorStop(0.45, '#ff6b35aa'); glow.addColorStop(1, '#ff3b2500');
-        ctx.fillStyle = glow; ctx.beginPath(); ctx.ellipse(0, 22, 17, 31, 0, 0, Math.PI*2); ctx.fill();
-        // Two layered flame tongues behind the engine nozzles.
-        for (const ex of [-7, 7]) {
-            const length = 12 + flicker * 9 + (ex < 0 ? 2 : 0);
-            ctx.shadowColor = '#ff7b32'; ctx.shadowBlur = 12;
-            ctx.fillStyle = '#ff5a2a';
-            ctx.beginPath(); ctx.moveTo(ex - 3, 14); ctx.quadraticCurveTo(ex - 4, 20 + flicker * 3, ex, 14 + length); ctx.quadraticCurveTo(ex + 4, 20 + flicker * 2, ex + 3, 14); ctx.closePath(); ctx.fill();
-            ctx.fillStyle = '#ffd36a';
-            ctx.beginPath(); ctx.moveTo(ex - 1.7, 14); ctx.quadraticCurveTo(ex - 2, 20, ex, 17 + length * 0.68); ctx.quadraticCurveTo(ex + 2, 20, ex + 1.7, 14); ctx.closePath(); ctx.fill();
-            ctx.fillStyle = '#d9faff'; ctx.shadowColor = '#8cecff'; ctx.shadowBlur = 8;
-            ctx.fillRect(ex - 1.1, 12, 2.2, 5);
-        }
-        ctx.restore();
-    }
-    ctx.shadowColor = enemy ? '#ef7160' : '#8cecff'; ctx.shadowBlur = 8;
-    // swept wings
-    ctx.beginPath();
-    if (enemy) {
-        ctx.moveTo(0,-16); ctx.lineTo(25,-4); ctx.lineTo(19,5); ctx.lineTo(8,2); ctx.lineTo(5,14); ctx.lineTo(-5,14); ctx.lineTo(-8,2); ctx.lineTo(-19,5); ctx.lineTo(-25,-4);
-    } else if (variant === 'jet') {
-        ctx.moveTo(0,-28); ctx.lineTo(5,-7); ctx.lineTo(17,5); ctx.lineTo(13,10); ctx.lineTo(5,6); ctx.lineTo(4,19); ctx.lineTo(8,25); ctx.lineTo(0,22); ctx.lineTo(-8,25); ctx.lineTo(-4,19); ctx.lineTo(-5,6); ctx.lineTo(-13,10); ctx.lineTo(-17,5); ctx.lineTo(-5,-7);
-    } else if (variant === 'propeller') {
-        ctx.moveTo(0,-22); ctx.lineTo(7,-7); ctx.lineTo(27,2); ctx.lineTo(25,12); ctx.lineTo(8,8); ctx.lineTo(6,17); ctx.lineTo(12,23); ctx.lineTo(0,20); ctx.lineTo(-12,23); ctx.lineTo(-6,17); ctx.lineTo(-8,8); ctx.lineTo(-25,12); ctx.lineTo(-27,2); ctx.lineTo(-7,-7);
-    } else if (variant === 'cruiser') {
-        ctx.moveTo(0,-24); ctx.lineTo(11,-7); ctx.lineTo(31,8); ctx.lineTo(28,15); ctx.lineTo(7,8); ctx.lineTo(5,18); ctx.lineTo(10,25); ctx.lineTo(0,22); ctx.lineTo(-10,25); ctx.lineTo(-5,18); ctx.lineTo(-7,8); ctx.lineTo(-28,15); ctx.lineTo(-31,8); ctx.lineTo(-11,-7);
-    } else {
-        ctx.moveTo(0,-25); ctx.lineTo(8,-5); ctx.lineTo(24,7); ctx.lineTo(22,12); ctx.lineTo(7,7); ctx.lineTo(5,17); ctx.lineTo(10,22); ctx.lineTo(10,25); ctx.lineTo(0,22); ctx.lineTo(-10,25); ctx.lineTo(-10,22); ctx.lineTo(-5,17); ctx.lineTo(-7,7); ctx.lineTo(-22,12); ctx.lineTo(-24,7); ctx.lineTo(-8,-5);
-    }
-    ctx.closePath(); ctx.fillStyle = base; ctx.fill(); ctx.lineWidth=1; ctx.strokeStyle=hi; ctx.stroke();
-    // central fuselage
-    ctx.beginPath(); ctx.moveTo(0,-27); ctx.lineTo(4,-13); ctx.lineTo(4,12); ctx.lineTo(0,22); ctx.lineTo(-4,12); ctx.lineTo(-4,-13); ctx.closePath();
-    const metal=ctx.createLinearGradient(-5,0,5,0); metal.addColorStop(0,'#263743'); metal.addColorStop(.45,hi); metal.addColorStop(1,base);
-    ctx.fillStyle=metal; ctx.fill(); ctx.strokeStyle='#edf4f2'; ctx.stroke();
-    // cockpit
-    ctx.beginPath(); ctx.moveTo(0,-20); ctx.lineTo(2.7,-12); ctx.lineTo(2.3,-6); ctx.lineTo(-2.3,-6); ctx.lineTo(-2.7,-12); ctx.closePath();
-    ctx.fillStyle=enemy?'#ffb09b':'#8cecff'; ctx.shadowColor=ctx.fillStyle; ctx.shadowBlur=7; ctx.fill(); ctx.shadowBlur=0;
-    ctx.strokeStyle=accent; ctx.lineWidth=.8; ctx.beginPath(); ctx.moveTo(-15,7);ctx.lineTo(-7,10);ctx.moveTo(15,7);ctx.lineTo(7,10);ctx.stroke();
-    if (variant==='copter') { ctx.strokeStyle=hi;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(-13,-20);ctx.lineTo(13,-20);ctx.moveTo(0,-20);ctx.lineTo(0,-25);ctx.stroke(); }
-    ctx.restore();
+function paintAircraft(c,x,y,scale,colors,variant,flame=true) {
+ c.save(); c.translate(x,y); c.scale(scale,scale);
+ const palette={standard:'#253e57',jet:'#446c85',propeller:'#526d65',cruiser:'#4f506d',copter:'#80704c'};
+ const base=palette[variant]||palette.standard;
+ const wing=variant==='jet'?19:variant==='propeller'?31:variant==='cruiser'?29:variant==='copter'?26:25;
+ function shape(points,fill,stroke='#b2c4cf') { c.beginPath();points.forEach((p,i)=>i?c.lineTo(...p):c.moveTo(...p));c.closePath();c.fillStyle=fill;c.fill();c.strokeStyle=stroke;c.lineWidth=.8;c.stroke(); }
+ c.shadowColor='#0c223e66';c.shadowBlur=3;c.shadowOffsetY=2;
+ if(flame){for(const x of [-6,6]){shape([[x-2,20],[x,32+Math.sin(Date.now()/45)*3],[x+2,20]],'#ffba59','#ffe7ab');}}
+ const top=variant==='cruiser'?-14:-8;
+ shape([[0,-31],[7,top],[wing,13],[wing-3,18],[8,10],[6,20],[13,28],[3,25],[0,29],[-3,25],[-13,28],[-6,20],[-8,10],[-wing+3,18],[-wing,13],[-7,top]],base);
+ c.shadowBlur=0;c.shadowOffsetY=0;
+ for(const sign of [-1,1]){
+ shape([[sign*5,-3],[sign*(wing-3),13],[sign*9,8]],'#9badb7','#dfe8ed');
+ shape([[sign*4,12],[sign*11,26],[sign*3,22]],base,'#cfb781');
+ c.fillStyle='#1b2e3c';c.fillRect(sign*6-2,13,4,10);
+ }
+ const metal=c.createLinearGradient(-5,0,5,0);metal.addColorStop(0,'#536c7c');metal.addColorStop(.5,'#edf0e9');metal.addColorStop(1,'#6d8796');
+ shape([[0,-33],[4,-16],[4,17],[0,26],[-4,17],[-4,-16]],metal);
+ shape([[0,-21],[2.5,-13],[2,-5],[-2,-5],[-2.5,-13]],'#223c54','#9dc7df');
+ c.strokeStyle='#cfb781';c.lineWidth=1;c.beginPath();c.moveTo(0,-28);c.lineTo(0,-23);c.moveTo(0,1);c.lineTo(0,19);c.stroke();
+ if(variant==='copter'){c.strokeStyle='#e7e2ca';c.lineWidth=2;c.beginPath();c.moveTo(-22,4);c.lineTo(-22,12);c.moveTo(22,4);c.lineTo(22,12);c.stroke();}
+ c.restore();
+}
+function drawAircraft(x,y,scale,colors,enemy=false,variant='standard') {
+ paintAircraft(ctx,x,y,scale,colors,variant);
 }
 
 function drawEnemyAircraft(x, y, type, colors) {
@@ -881,10 +861,11 @@ function updateGame() {
         const eb = enemyBullets[index];
         eb.x += eb.vx;
         eb.y += eb.vy;
-        ctx.fillStyle = eb.color;
+        ctx.fillStyle = '#df294d';
+        ctx.strokeStyle = '#fff5ec'; ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.arc(eb.x, eb.y, eb.size, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.fill(); ctx.stroke();
 
         // 플레이어와 적 탄막 충돌
         if (hitCooldown <= 0 && Math.hypot(player.x - eb.x, player.y - eb.y) < 20) {
@@ -1044,7 +1025,7 @@ function updateGame() {
         ctx.fillStyle = item.ribbonColor;
         ctx.fillRect(item.x - 3, item.y - 12+bobY, 6, 24);
         ctx.fillRect(item.x - 12, item.y - 3+bobY, 24, 6);
-        ctx.fillStyle = '#07111a'; ctx.font = 'bold 10px Orbitron, sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(item.symbol || ({coin:'W',power:'P',bomb:'B',shield:'S',bonus:'+'})[item.type] || '•', item.x, item.y+bobY+1);
+        ctx.fillStyle = '#fff'; ctx.strokeStyle = '#102b40'; ctx.lineWidth = 3; ctx.font = 'bold 12px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; const symbol = ({life:'♥',shield:'S',missile:'↑',coin:'W',power:'P',bomb:'B',bonus:'+'})[item.type] || '+'; ctx.strokeText(symbol,item.x,item.y+bobY+1); ctx.fillText(symbol,item.x,item.y+bobY+1);
         ctx.restore();
 
         if (Math.hypot(player.x - item.x, player.y - item.y) < 28) {
@@ -1106,7 +1087,7 @@ function updateGame() {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         ctx.strokeStyle = '#f1dca8'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(canvas.width/2, canvas.height/2, (55-bombEffectTimer)*5, 0, Math.PI*2); ctx.stroke();
-        ctx.fillStyle = '#f1dca8'; ctx.font = 'bold 15px Orbitron, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('TACTICAL STRIKE', canvas.width / 2, canvas.height / 2);
+        ctx.fillStyle = '#f1dca8'; ctx.font = 'bold 15px Orbitron, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('폭탄 투하', canvas.width / 2, canvas.height / 2);
     }
 
     for (let i = combatTexts.length - 1; i >= 0; i--) {
@@ -1172,10 +1153,10 @@ function renderRanking(rows) {
         const sub = document.createElement('span');
         sub.className = 'rank-sub';
         const difficultyLabels = { easy: '쉬움', normal: '보통', hard: '어려움' };
-        const planeLabels = { standard: 'FALCON', jet: 'VIPER', propeller: 'WRAITH', cruiser: 'PHANTOM', copter: 'AEGIS' };
+        const planeLabels = { standard: '요격기', jet: '고속기', propeller: '건십', cruiser: '스텔스', copter: '방어기' };
         const stageValue = Math.max(1, Number(row.stage || 1));
         const killsValue = Math.max(0, Number(row.kills || 0));
-        sub.textContent = `${difficultyLabels[row.difficulty] || '보통'} · ${planeLabels[row.plane] || String(row.plane || 'FALCON')} · STAGE ${stageValue} · 격추 ${killsValue}`;
+        sub.textContent = `${difficultyLabels[row.difficulty] || '보통'} · ${planeLabels[row.plane] || String(row.plane || 'FALCON')} · ${stageValue}단계 · 격추 ${killsValue}`;
         details.append(name, sub);
         const meta = document.createElement('span');
         meta.className = 'rank-meta';
@@ -1245,7 +1226,7 @@ function endMissionEarly() {
     stageBanner.classList.add('hidden');
     gameScreen.classList.add('hidden');
     gameOverScreen.classList.remove('hidden');
-    gameOverTitle.textContent = 'MISSION ENDED';
+    gameOverTitle.textContent = '작전 종료';
     gameOverTitle.style.color = '#d7b875';
     finalScoreEl.textContent = score.toLocaleString('ko-KR');
     if (finalComboEl) finalComboEl.textContent = bestCombo;
@@ -1264,7 +1245,7 @@ function gameOver() {
     clearInterval(gameInterval);
     gameScreen.classList.add('hidden');
     gameOverScreen.classList.remove('hidden');
-    gameOverTitle.textContent = "GAME OVER";
+    gameOverTitle.textContent = "작전 종료";
     gameOverTitle.style.color = "#ef4444";
     finalScoreEl.textContent = score.toLocaleString('ko-KR');
     if (finalComboEl) finalComboEl.textContent = bestCombo;
@@ -1308,7 +1289,7 @@ if (startRankingBtn) startRankingBtn.addEventListener('click', () => {
     startScreen.classList.add('hidden');
     gameOverScreen.classList.remove('hidden');
     gameOverScreen.classList.add('ranking-only');
-    gameOverTitle.textContent = '🏆 온라인 랭킹';
+    gameOverTitle.textContent = '온라인 랭킹';
     finalScoreEl.closest('p').classList.add('hidden');
     document.querySelector('.result-stats').classList.add('hidden');
     document.querySelector('.record-line').classList.add('hidden');
@@ -1328,3 +1309,39 @@ if (rankingBackBtn) rankingBackBtn.addEventListener('click', () => {
     restartBtn.classList.remove('hidden');
     startScreen.classList.remove('hidden');
 });
+
+function returnToStart() {
+    clearInterval(gameInterval); clearTimeout(stageBannerTimeout); clearTimeout(pickupNoticeTimeout);
+    gameScreen.classList.add('hidden'); gameOverScreen.classList.add('hidden');
+    gameOverScreen.classList.remove('ranking-only'); startScreen.classList.remove('hidden');
+    rankingLoadVersion++; startRankingBtn.focus();
+}
+document.getElementById('result-home-btn').addEventListener('click', returnToStart);
+const guide = document.getElementById('tutorial-overlay');
+function showFirstFlightGuide() {
+    let seen = false; try { seen = localStorage.getItem('skyRaiders84Guide') === '1'; } catch(e) {}
+    if (seen) return;
+    isManuallyPaused = true; guide.classList.remove('hidden');
+    document.getElementById('tutorial-start-btn').focus();
+}
+function closeFirstFlightGuide() {
+    try { localStorage.setItem('skyRaiders84Guide','1'); } catch(e) {}
+    guide.classList.add('hidden'); setPaused(false); canvas.focus();
+}
+document.getElementById('tutorial-start-btn').addEventListener('click',closeFirstFlightGuide);
+document.getElementById('tutorial-skip-btn').addEventListener('click',closeFirstFlightGuide);
+guide.addEventListener('keydown',e=>{
+    if(e.key==='Escape') closeFirstFlightGuide();
+    if(e.key==='Tab') { e.preventDefault(); const a=document.getElementById('tutorial-start-btn'),b=document.getElementById('tutorial-skip-btn'); (document.activeElement===a?b:a).focus(); }
+});
+function renderPlanePreviews() {
+    const descriptions = {standard:'요격기 · 속도와 화력의 균형',jet:'고속기 · 빠른 이동과 집중 사격',propeller:'건십 · 안정적인 연속 사격',cruiser:'스텔스 · 넓게 퍼지는 확산 공격',copter:'방어기 · 방어막 2회로 생존 강화'};
+    document.getElementById('plane-description').textContent = descriptions[selectedPlaneType];
+    document.querySelectorAll('.plane-card').forEach(card=>{
+        const preview=card.querySelector('canvas'), pctx=preview.getContext('2d');
+        pctx.clearRect(0,0,72,72); paintAircraft(pctx,36,35,.88,getPlaneColor(card.dataset.plane),card.dataset.plane,false);
+    });
+    const preview=document.getElementById('preview-plane'),pctx=preview.getContext('2d');
+    pctx.clearRect(0,0,320,180); paintAircraft(pctx,160,83,2.45,getPlaneColor(selectedPlaneType),selectedPlaneType,false);
+}
+renderPlanePreviews();
