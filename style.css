@@ -371,3 +371,16 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #548f
 #mission-confirm .confirm-actions{flex-wrap:wrap}#mission-confirm button{min-width:85px;min-height:44px}
 @media(max-width:380px){#game-wrapper{border-radius:16px}#start-screen{padding-left:16px;padding-right:16px}.plane-card h3{font-size:10px}.start-nav{column-gap:8px}#mission-confirm{padding:24px 16px}}
 @media(prefers-reduced-motion:reduce){button,.plane-card{transition:none!important}.glow-btn:hover{transform:none}}
+
+/* Combat readability: explicit colors prevent light-theme rules leaking into HUD. */
+#hud{grid-template-columns:repeat(3,minmax(0,1fr));padding:9px 8px;row-gap:5px;background:#102536;color:#c4d4df;font:500 11px/1.45 'Noto Sans KR',sans-serif;border-bottom:1px solid #395162;font-variant-numeric:tabular-nums}
+#hud .hud-item{padding:2px 4px;border-right:0;white-space:nowrap}#hud .hud-item span{color:#f5f8fa;font-size:13px;font-weight:700;margin-left:4px}
+#controls-panel{gap:6px;padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px));background:#102536;border-top:1px solid #395162}
+#controls-panel>.utility-btn,#controls-panel>.portal-home-link{background:#1c3548;border:1px solid #486071;color:#f0f5f8;min-height:48px;gap:4px;font-size:16px;border-radius:10px}
+#controls-panel>.utility-btn span,#controls-panel>.portal-home-link span{font:600 12px/1.3 'Noto Sans KR',sans-serif;letter-spacing:0;color:#edf3f7;margin:0}
+#controls-panel>.utility-btn:hover{background:#2a475c}#controls-panel #bomb-btn{background:#d5c092;color:#172b3b;border:1px solid #e6d6b5;font:700 14px 'Noto Sans KR',sans-serif;min-height:42px;padding:9px;border-radius:10px}
+#stage-progress{background:#203849;height:3px}#stage-progress-fill{background:#cbb782;box-shadow:none}
+#stage-banner{background:#102536f5;border:1px solid #6e8090;box-shadow:0 12px 40px #0005}#banner-title{color:#ebd7ac;font-size:20px}#banner-desc{color:#e0e9ef;line-height:1.7}
+#pause-overlay{background:#081725b8}.pause-card{background:#142c3e;border:1px solid #607585;box-shadow:0 20px 60px #0004}.pause-card p{color:#d4e0e8;line-height:1.7}.pause-card h2{color:#f4f7fa}
+@media(max-width:360px){#hud{font-size:10px}#hud .hud-item span{font-size:12px}#controls-panel>.utility-btn span,#controls-panel>.portal-home-link span{font-size:11px}}
+@media(max-height:700px){#hud{padding:6px;row-gap:2px}#controls-panel{padding-top:6px;padding-bottom:6px}#controls-panel>.utility-btn{min-height:42px}#controls-panel #bomb-btn{min-height:36px;padding:6px}}

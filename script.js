@@ -919,16 +919,7 @@ function updateGame() {
 
         drawAircraft(boss.x, boss.y, 1.5, {base:'#7c444b', high:'#f0b3a2', accent:'#d7b875'}, true, 'boss');
 
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
-        ctx.fillRect(canvas.width / 2 - 120, 15, 240, 14);
-        ctx.strokeStyle = '#3b82f6';
-        ctx.strokeRect(canvas.width / 2 - 120, 15, 240, 14);
-        ctx.fillStyle = '#3b82f6';
-        ctx.fillRect(canvas.width / 2 - 120, 15, Math.max(0, (boss.hp / boss.maxHp) * 240), 14);
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 11px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(`[STAGE ${currentStage} BOSS] ${boss.name}`, canvas.width / 2, 37);
+        drawBossStatus();
 
         if (hitCooldown <= 0 && Math.hypot(player.x - boss.x, player.y - boss.y) < 50) {
             playSound('hit');
@@ -1114,7 +1105,7 @@ function updateGame() {
 
     if (bombEffectTimer > 0) {
         bombEffectTimer--;
-        ctx.fillStyle = bombEffectTimer % 4 < 2 ? 'rgba(59, 130, 246, 0.75)' : 'rgba(255, 255, 255, 0.75)';
+        ctx.fillStyle = bombEffectTimer % 4 < 2 ? 'rgba(113, 158, 184, 0.18)' : 'rgba(225, 236, 243, 0.24)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         ctx.strokeStyle = '#f1dca8'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(canvas.width/2, canvas.height/2, (55-bombEffectTimer)*5, 0, Math.PI*2); ctx.stroke();
@@ -1496,4 +1487,18 @@ async function askMissionMenu(){
  const save=document.getElementById('mission-confirm-save');save.classList.remove('hidden');
  try{return await askGameConfirmation('작전을 어떻게 할까요?', '저장하면 현재 장비를 유지하고, 다음에 같은 스테이지를 처음부터 이어합니다. 종료하면 현재 점수를 랭킹에 등록할 수 있어요.', '종료하기', true);}
  finally{save.classList.add('hidden');}
+}
+
+function drawBossStatus(){
+ if(!boss)return;
+ const x=20,y=12,w=canvas.width-40,h=58,ratio=Math.max(0,Math.min(1,boss.hp/boss.maxHp));
+ ctx.save();ctx.globalAlpha=1;ctx.shadowBlur=0;
+ ctx.fillStyle='rgba(12,27,40,.94)';ctx.beginPath();ctx.roundRect(x,y,w,h,12);ctx.fill();
+ ctx.strokeStyle='#526576';ctx.lineWidth=1;ctx.stroke();
+ ctx.textBaseline='middle';ctx.textAlign='left';ctx.font='600 13px "Noto Sans KR",sans-serif';ctx.fillStyle='#eef4f7';ctx.fillText(boss.name,x+16,y+18);
+ ctx.textAlign='right';ctx.font='500 12px "Noto Sans KR",sans-serif';ctx.fillStyle='#b9c9d4';ctx.fillText(`${currentStage}단계 · ${Math.ceil(ratio*100)}%`,x+w-16,y+18);
+ const bx=x+16,by=y+36,bw=w-32;
+ ctx.fillStyle='#293e4d';ctx.beginPath();ctx.roundRect(bx,by,bw,7,3.5);ctx.fill();
+ if(ratio>0){const gradient=ctx.createLinearGradient(bx,0,bx+bw,0);gradient.addColorStop(0,ratio<.25?'#ac6061':'#a99264');gradient.addColorStop(1,ratio<.25?'#d99c8b':'#e2d1a8');ctx.fillStyle=gradient;ctx.beginPath();ctx.roundRect(bx,by,Math.max(1,bw*ratio),7,3.5);ctx.fill();}
+ ctx.restore();
 }
