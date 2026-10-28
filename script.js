@@ -1234,9 +1234,9 @@ if (rankNicknameEl) {
 }
 if (submitRankBtn) submitRankBtn.addEventListener('click', submitOnlineScore);
 
-function endMissionEarly() {
+async function endMissionEarly() {
     if (gameScreen.classList.contains('hidden')) return;
-    const shouldEnd = window.confirm('현재 작전을 종료하고 결과 화면으로 돌아갈까요? 지금까지의 점수는 결과 화면에서 랭킹에 등록할 수 있습니다.');
+    const shouldEnd = await askGameConfirmation('작전을 종료할까요?', '지금까지 획득한 점수로 랭킹에 등록할 수 있어요.', '작전 종료');
     if (!shouldEnd) return;
     finishMission();
     clearTimeout(stageBannerTimeout);
@@ -1376,9 +1376,9 @@ function renderPlanePreviews() {
 renderPlanePreviews();
 
 // Keep the current mission when the player cancels leaving it.
-document.getElementById('game-home-btn').addEventListener('click', () => {
+document.getElementById('game-home-btn').addEventListener('click', async () => {
     if (gameScreen.classList.contains('hidden')) return;
-    if (!window.confirm('진행 상황을 저장하고 처음 화면으로 돌아갈까요?')) return;
+    if (!await askGameConfirmation('처음으로 돌아갈까요?', '진행 상황을 저장해 두고 다음에 이어할 수 있어요.', '저장하고 돌아가기')) return;
     returnToStart();
 });
 
@@ -1459,3 +1459,19 @@ function setCloudAuthMode(mode){const signup=mode==='signup';document.getElement
 const cloudActions={'show-signup':()=>setCloudAuthMode('signup'),'back-to-login':()=>setCloudAuthMode('login'),'cloud-save':cloudSave,'cloud-load':cloudLoad,'cloud-logout':()=>{setCloudCredentials(null);document.getElementById('cloud-password').value='';cloudMessage('보관함 연결을 해제했어요.');},'cloud-login':cloudLogin,'cloud-signup':cloudSignup};
 document.querySelector('.cloud-account').addEventListener('click',event=>{const button=event.target.closest('button');if(!button||!cloudActions[button.id])return;event.preventDefault();const pending={'cloud-login':'보관함을 확인하고 있어요.','cloud-signup':'보관함을 만들고 있어요.','cloud-save':'저장하고 있어요.','cloud-load':'불러오고 있어요.'}[button.id];if(pending)cloudMessage(pending);button.disabled=true;Promise.resolve().then(()=>cloudActions[button.id]()).catch(error=>cloudMessage(error.message||'요청을 처리하지 못했습니다.',true)).finally(()=>{button.disabled=false;});});
 setCloudAuthMode('login');
+
+function askGameConfirmation(title, description, actionLabel) {
+ const dialog=document.getElementById('mission-confirm');
+ if(dialog.open)return Promise.resolve(false);
+ const wasPaused=isManuallyPaused;
+ setPaused(true);
+ document.getElementById('mission-confirm-title').textContent=title;
+ document.getElementById('mission-confirm-description').textContent=description;
+ document.getElementById('mission-confirm-accept').textContent=actionLabel;
+ dialog.returnValue='cancel';
+ return new Promise(resolve=>{
+  dialog.addEventListener('close',()=>{setPaused(wasPaused);resolve(dialog.returnValue==='accept');},{once:true});
+  dialog.showModal();
+ });
+}
+document.getElementById('mission-confirm').addEventListener('keydown',event=>event.stopPropagation());
