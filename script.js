@@ -27,6 +27,8 @@ const finalScoreEl = document.getElementById('final-score');
 const gameOverTitle = document.getElementById('gameover-title');
 const rankNicknameEl = document.getElementById('rank-nickname');
 const submitRankBtn = document.getElementById('submit-rank-btn');
+const startRankingBtn = document.getElementById('start-ranking-btn');
+const rankingBackBtn = document.getElementById('ranking-back-btn');
 const rankStatusEl = document.getElementById('rank-status');
 const rankingListEl = document.getElementById('ranking-list');
 
@@ -266,19 +268,11 @@ canvas.addEventListener('mousemove', e => {
     isMouseDown = true;
 });
 
-canvas.addEventListener('touchmove', e => {
-    if (isPausedForBanner) return;
-    const rect = canvas.getBoundingClientRect();
-    mouseX = (e.touches[0].clientX - rect.left) * (canvas.width / rect.width);
-    mouseY = (e.touches[0].clientY - rect.top) * (canvas.height / rect.height);
-    isMouseDown = true;
-    e.preventDefault();
-}, { passive: false });
 canvas.addEventListener('pointerdown', e => {
     if (e.pointerType === 'touch') {
         const rect = canvas.getBoundingClientRect();
         mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
-        mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
+        mouseY = (e.clientY - rect.top) * (canvas.height / rect.height) - 48;
         isMouseDown = true;
     }
 });
@@ -286,7 +280,7 @@ canvas.addEventListener('pointermove', e => {
     if (e.pointerType !== 'touch' || isPausedForBanner) return;
     const rect = canvas.getBoundingClientRect();
     mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
-    mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
+    mouseY = (e.clientY - rect.top) * (canvas.height / rect.height) - 48;
 });
 canvas.addEventListener('pointerup', e => { if (e.pointerType === 'touch') isMouseDown = false; });
 canvas.addEventListener('pointercancel', e => { if (e.pointerType === 'touch') isMouseDown = false; });
@@ -1310,3 +1304,27 @@ soundBtn.addEventListener('click', toggleSound);
 if (quitBtn) quitBtn.addEventListener('click', endMissionEarly);
 startBtn.addEventListener('click', startGame);
 restartBtn.addEventListener('click', startGame);
+if (startRankingBtn) startRankingBtn.addEventListener('click', () => {
+    startScreen.classList.add('hidden');
+    gameOverScreen.classList.remove('hidden');
+    gameOverScreen.classList.add('ranking-only');
+    gameOverTitle.textContent = '🏆 온라인 랭킹';
+    finalScoreEl.closest('p').classList.add('hidden');
+    document.querySelector('.result-stats').classList.add('hidden');
+    document.querySelector('.record-line').classList.add('hidden');
+    rankNicknameEl.closest('.rank-submit').classList.add('hidden');
+    document.querySelector('#gameover-screen > .portal-home-link').classList.add('hidden');
+    restartBtn.classList.add('hidden');
+    loadOnlineRanking();
+});
+if (rankingBackBtn) rankingBackBtn.addEventListener('click', () => {
+    gameOverScreen.classList.add('hidden');
+    gameOverScreen.classList.remove('ranking-only');
+    finalScoreEl.closest('p').classList.remove('hidden');
+    document.querySelector('.result-stats').classList.remove('hidden');
+    document.querySelector('.record-line').classList.remove('hidden');
+    rankNicknameEl.closest('.rank-submit').classList.remove('hidden');
+    document.querySelector('#gameover-screen > .portal-home-link').classList.remove('hidden');
+    restartBtn.classList.remove('hidden');
+    startScreen.classList.remove('hidden');
+});

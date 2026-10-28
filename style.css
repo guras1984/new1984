@@ -210,3 +210,33 @@ html,body{background:radial-gradient(circle at 50% -20%,#fffef4 0%,#c5effc 47%,#
 @media(max-width:480px){body{padding:0}#game-wrapper{height:100dvh;width:100%;border:0;border-radius:0;box-shadow:none}#start-screen{padding:43px 13px 18px}.plane-card{min-height:118px;padding:9px 7px}.plane-card:nth-child(5){min-height:108px}.plane-icon{height:36px;width:36px;font-size:1.4rem;border-radius:12px}.plane-special{font-size:8px;margin-top:5px}.title-glow{font-size:clamp(1.4rem,6vw,1.8rem)}#hud{font-size:.56rem;padding:6px 4px;row-gap:3px}#controls-panel{padding:7px;gap:5px}#controls-panel .utility-btn{min-height:40px}#bomb-btn{font-size:.71rem}}
 @media(max-height:700px){#start-screen{padding-top:40px}.plane-card{min-height:107px;padding:8px 6px}.selection-container{gap:7px;margin-bottom:8px}.difficulty-panel{padding:7px 10px}.hangar-tip{display:none}}
 @media(prefers-reduced-motion:reduce){#stage-banner{animation:none!important}}
+
+/* Keep all ten leaderboard rows readable and keep touch feedback above the thumb. */
+.ranking-list{max-height:none;overflow:visible}
+.ranking-back-btn{display:none}
+.ranking-only #gameover-title,.ranking-only .result-stats,.ranking-only .record-line,
+.ranking-only>#gameover-screen>p,.ranking-only>#gameover-screen>.portal-home-link,
+.ranking-only #restart-btn,.ranking-only .rank-submit{display:none!important}
+.ranking-only #online-ranking{margin-top:12px}
+.ranking-only .ranking-back-btn{display:block;margin:0 auto 8px}
+#start-screen{padding-top:58px}
+@media(max-width:480px){
+  #start-screen{padding:45px 10px 12px}
+  #start-screen>p{font-size:.68rem;margin-bottom:8px}
+  .edition-label{margin-bottom:5px;padding:4px 9px}
+  .title-glow{font-size:clamp(1.35rem,5.8vw,1.8rem);margin-bottom:4px}
+  .selection-container{gap:6px;margin-bottom:7px}
+  .plane-card,.plane-card:nth-child(5){min-height:92px;padding:6px 5px}
+  .plane-icon{height:30px;width:30px;margin-bottom:3px;font-size:1.1rem}
+  .plane-card h3{font-size:.68rem;margin:1px 0 2px}
+  .plane-card p{font-size:.57rem}
+  .plane-special{font-size:7px;margin-top:3px;padding:2px 5px}
+  .difficulty-panel{padding:6px 8px;margin-bottom:6px}
+  .difficulty-card{padding:5px 3px}
+  .difficulty-card strong{font-size:10px}
+  .difficulty-card small{font-size:7px}
+  .mission-note{margin-bottom:5px;padding:5px;font-size:7px}
+  .hangar-tip{display:none}
+  #start-btn{padding:10px 18px;margin-top:2px}
+}
+@media(max-height:740px) and (min-width:481px){#start-screen{padding-top:38px}.plane-card{min-height:104px;padding:8px}.selection-container{margin-bottom:7px}.hangar-tip{display:none}}

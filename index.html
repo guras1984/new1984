@@ -11,11 +11,11 @@
       .portal-home-link {
         display:inline-flex; align-items:center; justify-content:center;
         gap:5px; padding:9px 12px; min-height:36px;
-        border-radius:10px; border:1px solid #a6e8ed;
-        background:linear-gradient(135deg,#e8ffff,#a6f1eb);
-        color:#124858; text-decoration:none;
+        border-radius:10px; border:1px solid #b7d7e3;
+        background:linear-gradient(135deg,#f5fbfd,#e7f3f7);
+        color:#456b7e; text-decoration:none;
         font:800 12px 'Noto Sans KR',sans-serif;
-        box-shadow:0 3px 12px #0004; white-space:nowrap;
+        box-shadow:0 2px 6px #0002; white-space:nowrap;
         transition:filter .15s,transform .15s;
       }
       .portal-home-link:hover { filter:brightness(1.07); transform:translateY(-1px); }
@@ -23,6 +23,12 @@
       #start-screen > .portal-home-link,
       #gameover-screen > .portal-home-link {
         position:absolute; top:12px; right:12px; z-index:8;
+      }
+      #start-screen > .portal-home-link { right:12px; }
+      #start-screen > .start-ranking-btn {
+        position:absolute; top:12px; right:132px; z-index:8;
+        min-height:36px; min-width:0; padding:7px 10px;
+        border-radius:10px; font:800 11px 'Noto Sans KR',sans-serif;
       }
       #controls-panel > .portal-home-link {
         flex:0 0 auto; min-width:64px; flex-direction:column;
@@ -39,6 +45,7 @@
         #controls-panel > #bomb-btn { grid-column:1/-1; min-height:42px; }
         #start-screen > .portal-home-link,
         #gameover-screen > .portal-home-link { top:8px; right:8px; padding:7px 9px; font-size:11px; }
+        #start-screen > .start-ranking-btn { top:8px; right:112px; min-height:32px; padding:5px 8px; font-size:10px; }
       }
     </style>
 
@@ -48,6 +55,7 @@
         <!-- 시작 화면 -->
         <div id="start-screen" class="screen">
             <a class="portal-home-link" href="https://guras1984.github.io/webgame/" aria-label="게임 목록으로 돌아가기">🏠 게임 목록</a>
+            <button id="start-ranking-btn" class="utility-btn start-ranking-btn" type="button">🏆 랭킹 보기</button>
             <div class="edition-label">AERIAL LEGENDS <span>★ DELUXE EDITION ★</span></div>
             <div class="title-glow">SKY RAIDERS <span>’84</span></div>
             <p>1984년 아케이드의 긴장감과 현대적인 전술 비행을 하나로.
@@ -139,6 +147,7 @@
             <p class="record-line">PERSONAL BEST <span id="best-score">0</span></p>
             <section id="online-ranking" class="online-ranking" aria-label="온라인 랭킹">
                 <h3>🏆 ONLINE TOP 10</h3>
+                <button id="ranking-back-btn" type="button" class="utility-btn ranking-back-btn">← 처음 화면</button>
                 <div class="rank-submit">
                     <input id="rank-nickname" type="text" maxlength="12" autocomplete="nickname" placeholder="닉네임 (최대 12자)" aria-label="랭킹 닉네임">
                     <button id="submit-rank-btn" type="button" class="utility-btn">점수 등록</button>
