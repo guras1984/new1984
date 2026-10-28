@@ -192,6 +192,8 @@ const pickupNotice = document.getElementById('pickup-notice');
 let score = 0;
 let lives = 3;
 let bombs = 2;
+const MAX_SHOTS = 5, MAX_POWER = 2;
+let supportCount = 0;
 let bulletCount = 1;
 let power = 0;
 let currentStage = 1;
@@ -362,7 +364,7 @@ function startGame() {
     bombs = 2;
     const spec = planeSpecs[selectedPlaneType] || planeSpecs.standard;
     bulletCount = spec.initialSpread;
-    power = 0;
+    power = 0; supportCount = 0;
     currentStage = 1;
     stageScore = 0;
     combo = 0; bestCombo = 0; kills = 0; comboTimer = 0; hitCooldown = 0;
@@ -405,7 +407,7 @@ function updateHUD() {
     if (stageProgressFill) stageProgressFill.style.width = `${Math.min(100, stageScore / SCORE_PER_STAGE * 100)}%`;
     livesEl.textContent = lives;
     bombsEl.textContent = bombs;
-    spreadEl.textContent = Math.min(9, bulletCount + Math.floor(power / 2));
+    spreadEl.textContent = Math.min(MAX_SHOTS, bulletCount);
     if (missilesEl) missilesEl.textContent = missileAmmo;
     if (comboEl) comboEl.textContent = combo.toLocaleString('ko-KR');
 }
@@ -414,20 +416,22 @@ let shootTimer = 0;
 function handleShooting() {
     shootTimer++;
     const spec = planeSpecs[selectedPlaneType] || planeSpecs.standard;
-    if (shootTimer % Math.max(3, spec.fireDelay - power) === 0) {
+    if (shootTimer % Math.max(7, spec.fireDelay - power) === 0) {
         playSound('shoot');
-        let count = Math.min(9, bulletCount + Math.floor(power / 2));
+        let count = Math.min(MAX_SHOTS, bulletCount);
         
-        bullets.push({x: player.x, y: player.y - 20, vy: -14, vx: 0, size: 6, color: '#60a5fa'});
-
-        for (let i = 1; i <= Math.floor(count / 2); i++) {
-            bullets.push({x: player.x - (i * 14), y: player.y - 10, vy: -14, vx: -i * 0.6, size: 5, color: '#3b82f6'});
-            bullets.push({x: player.x + (i * 14), y: player.y - 10, vy: -14, vx: i * 0.6, size: 5, color: '#3b82f6'});
-        }
-        if (count % 2 === 0 && count > 0) {
-            bullets.push({x: player.x - 7, y: player.y - 12, vy: -13, vx: -0.35, size: 5, color: '#1d4ed8'});
+        for(let i=0;i<count;i++) {
+            const offset=i-(count-1)/2;
+            bullets.push({x:player.x+offset*12,y:player.y-20,vy:-14,vx:offset*.5,size:5,color:'#60a5fa'});
         }
     }
+    if (supportCount > 0 && shootTimer % 50 === 0) {
+        for(let i=0;i<supportCount;i++) {
+            const x=Math.max(12,Math.min(canvas.width-12,player.x+(i===0?-42:42)));
+            bullets.push({x,y:player.y+2,vy:-9,vx:0,size:4,color:'#7de9da',damage:1});
+        }
+    }
+
     // 일반 탄환의 발사 속도와 별개로 유도탄은 일정 간격으로 발사됩니다.
     if (missileAmmo > 0 && shootTimer % 45 === 0) {
         missileAmmo--;
@@ -454,6 +458,7 @@ function maybeDropItem(enemy) {
         { type: 'coin', boxColor: '#b28b3c', ribbonColor: '#fff0b3', name: '무장 확장', symbol: 'W' },
         { type: 'power', boxColor: '#bd5149', ribbonColor: '#ffd0b8', name: '파워 업', symbol: 'P' },
         { type: 'bomb', boxColor: '#2876a0', ribbonColor: '#bae6fd', name: '폭탄 충전', symbol: 'B' },
+        { type: 'support', boxColor:'#358b80', ribbonColor:'#c7fff0', name:'보조 비행기', symbol:'F' },
         { type: 'bonus', boxColor: '#a9852b', ribbonColor: '#fef08a', name: '보너스 점수', symbol: '+' }
     ];
     const lifeChance = easy ? 0.34 : selectedDifficulty === 'hard' ? 0.07 : 0.13;
@@ -568,13 +573,13 @@ function triggerBomb() {
         enemies = [];
         enemyBullets = [];
         if (boss) {
-            boss.hp -= 60 + (currentStage * 3);
+            boss.hp = Math.max(1, boss.hp - Math.max(1, Math.floor(boss.maxHp * .18)));
             if (boss.hp <= 0) {
                 defeatBoss();
             }
         }
         addScore(500);
-        stageScore += 500;
+        // Bombs clear danger without advancing boss progress.
         updateHUD();
         bombEffectTimer = 55;
     }
@@ -943,7 +948,7 @@ function updateGame() {
             const b = bullets[bIndex];
             if (boss && Math.hypot(b.x - boss.x, b.y - boss.y) < 45) {
                 bullets.splice(bIndex, 1);
-                boss.hp -= (1 + Math.floor(power / 2));
+                boss.hp -= b.damage || (1 + Math.floor(power / 2));
                 createParticles(b.x, b.y, '#f43f5e', 4);
                 if (boss.hp <= 0) {
                     defeatBoss();
@@ -1010,7 +1015,7 @@ function updateGame() {
             const b = bullets[bIndex];
             if (Math.hypot(b.x - enemy.x, b.y - enemy.y) < 26) {
                 bullets.splice(bIndex, 1);
-                enemy.hp -= (1 + Math.floor(power / 3));
+                enemy.hp -= b.damage || (1 + Math.floor(power / 3));
                 createParticles(b.x, b.y, '#60a5fa', 5);
                 if (enemy.hp <= 0) {
                     enemies.splice(eIndex, 1);
@@ -1042,7 +1047,7 @@ function updateGame() {
         ctx.fillStyle = item.ribbonColor;
         ctx.fillRect(item.x - 3, item.y - 12+bobY, 6, 24);
         ctx.fillRect(item.x - 12, item.y - 3+bobY, 24, 6);
-        ctx.fillStyle = '#fff'; ctx.strokeStyle = '#102b40'; ctx.lineWidth = 3; ctx.font = 'bold 12px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; const symbol = ({gem:'◆',life:'♥',shield:'S',missile:'↑',coin:'W',power:'P',bomb:'B',bonus:'+'})[item.type] || '+'; ctx.strokeText(symbol,item.x,item.y+bobY+1); ctx.fillText(symbol,item.x,item.y+bobY+1);
+        ctx.fillStyle = '#fff'; ctx.strokeStyle = '#102b40'; ctx.lineWidth = 3; ctx.font = 'bold 12px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; const symbol = ({support:'F',gem:'◆',life:'♥',shield:'S',missile:'↑',coin:'W',power:'P',bomb:'B',bonus:'+'})[item.type] || '+'; ctx.strokeText(symbol,item.x,item.y+bobY+1); ctx.fillText(symbol,item.x,item.y+bobY+1);
         ctx.restore();
 
         if (Math.hypot(player.x - item.x, player.y - item.y) < 28) {
@@ -1066,10 +1071,12 @@ function updateGame() {
             } else if (item.type === 'missile') {
                 missileAmmo = Math.min(12, missileAmmo + 3);
                 addScore(100);
+            } else if (item.type === 'support') {
+                supportCount = Math.min(2, supportCount + 1);
             } else if (item.type === 'coin') {
-                bulletCount = Math.min(9, bulletCount + 1);
+                bulletCount = Math.min(MAX_SHOTS, bulletCount + 1);
             } else if (item.type === 'power') {
-                power = Math.min(5, power + 1);
+                power = Math.min(MAX_POWER, power + 1);
             } else if (item.type === 'bomb') {
                 bombs = Math.min(9, bombs + 2);
             } else if (item.type === 'shield') {
@@ -1087,6 +1094,10 @@ function updateGame() {
         }
     }
 
+    for(let i=0;i<supportCount;i++) {
+        const x=Math.max(12,Math.min(canvas.width-12,player.x+(i===0?-42:42)));
+        drawAircraft(x,player.y+18,.45,{base:'#26796f',high:'#a9fff0',accent:'#e8ffb1'},false,'standard');
+    }
     drawCosmetics(ctx, player.x, player.y, 1, frameCount);
     let pColor = getPlaneColor(selectedPlaneType);
     if (hitCooldown === 0 || Math.floor(hitCooldown / 5) % 2 === 0) drawAircraft(player.x, player.y, 1.0, pColor, false, selectedPlaneType);
@@ -1236,8 +1247,9 @@ if (submitRankBtn) submitRankBtn.addEventListener('click', submitOnlineScore);
 
 async function endMissionEarly() {
     if (gameScreen.classList.contains('hidden')) return;
-    const shouldEnd = await askGameConfirmation('작전을 종료할까요?', '지금까지 획득한 점수로 랭킹에 등록할 수 있어요.', '작전 종료');
-    if (!shouldEnd) return;
+    const choice = await askMissionMenu();
+    if(choice==='save'){saveMission();returnToStart();return;}
+    if(choice!=='accept')return;
     finishMission();
     clearTimeout(stageBannerTimeout);
     clearTimeout(pickupNoticeTimeout);
@@ -1406,8 +1418,8 @@ function setSelectionLock(locked) { [...planeCards,...difficultyCards].forEach(c
 function readSave() {const s=readLocal(MISSION_KEY); return s?.version===1 && difficultySettings[s.difficulty] && planeSpecs[s.plane] && s.currentStage>=1 && s.currentStage<=100 && s.lives>0 ? s : null;}
 function saveMission() {
  if(!missionActive || lives<=0 || currentStage>100) return;
- const data={version:1,plane:selectedPlaneType,difficulty:selectedDifficulty,score,lives,bombs,bulletCount,power,currentStage,stageScore,combo,bestCombo,kills,comboTimer,hitCooldown,killsWithoutItem,missileAmmo,shieldHits,player,bullets,enemyBullets,enemies,items,missiles,boss,frameCount,shootTimer,spawnTimer,pickupCount};
- if(storageWrite(MISSION_KEY,data)) document.getElementById('save-status').textContent='진행 상황 자동 저장 · 같은 브라우저에서 이어할 수 있어요';
+ const data={version:1,plane:selectedPlaneType,difficulty:selectedDifficulty,score,lives,bombs,bulletCount,power,currentStage,stageScore,combo,bestCombo,kills,comboTimer,hitCooldown,killsWithoutItem,missileAmmo,shieldHits,player,bullets,enemyBullets,enemies,items,missiles,boss,frameCount,shootTimer,spawnTimer,pickupCount,supportCount};
+ if(storageWrite(MISSION_KEY,data)) document.getElementById('save-status').textContent='장비와 현재 단계 저장됨 · 이어하면 단계 처음부터 시작';
 }
 function finishMission() {missionActive=false; setSelectionLock(false); try {localStorage.removeItem(MISSION_KEY);} catch {} refreshContinue();}
 function refreshContinue() {const s=readSave(),b=document.getElementById('continue-btn'); b.classList.toggle('hidden',!s); if(s)b.textContent=`${s.currentStage}단계 이어하기 · ${Number(s.score).toLocaleString('ko-KR')}점`;}
@@ -1415,6 +1427,9 @@ document.getElementById('continue-btn').onclick=()=>{
  const s=readSave(); if(!s)return;
  selectedPlaneType=s.plane;selectedDifficulty=s.difficulty;resumingMission=true;startGame();resumingMission=false;
  ({score,lives,bombs,bulletCount,power,currentStage,stageScore,combo,bestCombo,kills,comboTimer,hitCooldown,killsWithoutItem,missileAmmo,shieldHits,player,bullets,enemyBullets,enemies,items,missiles,boss,frameCount,shootTimer,spawnTimer,pickupCount}=s);
+ supportCount=Math.min(2,Math.max(0,Number(s.supportCount)||0));bulletCount=Math.min(MAX_SHOTS,bulletCount);power=Math.min(MAX_POWER,power);
+ stageScore=0;combo=0;comboTimer=0;bullets=[];enemyBullets=[];enemies=[];items=[];missiles=[];boss=null;shootTimer=0;spawnTimer=0;frameCount=0;
+ player.x=canvas.width/2;player.y=canvas.height-90;
  keys={};activePointer=null;isMouseDown=false;mouseX=player.x;mouseY=player.y;hitCooldown=Math.max(120,hitCooldown);updateHUD();setPaused(true);saveMission();
 };
 window.addEventListener('pagehide',saveMission);
@@ -1460,7 +1475,7 @@ const cloudActions={'show-signup':()=>setCloudAuthMode('signup'),'back-to-login'
 document.querySelector('.cloud-account').addEventListener('click',event=>{const button=event.target.closest('button');if(!button||!cloudActions[button.id])return;event.preventDefault();const pending={'cloud-login':'보관함을 확인하고 있어요.','cloud-signup':'보관함을 만들고 있어요.','cloud-save':'저장하고 있어요.','cloud-load':'불러오고 있어요.'}[button.id];if(pending)cloudMessage(pending);button.disabled=true;Promise.resolve().then(()=>cloudActions[button.id]()).catch(error=>cloudMessage(error.message||'요청을 처리하지 못했습니다.',true)).finally(()=>{button.disabled=false;});});
 setCloudAuthMode('login');
 
-function askGameConfirmation(title, description, actionLabel) {
+function askGameConfirmation(title, description, actionLabel, returnChoice=false) {
  const dialog=document.getElementById('mission-confirm');
  if(dialog.open)return Promise.resolve(false);
  const wasPaused=isManuallyPaused;
@@ -1470,8 +1485,14 @@ function askGameConfirmation(title, description, actionLabel) {
  document.getElementById('mission-confirm-accept').textContent=actionLabel;
  dialog.returnValue='cancel';
  return new Promise(resolve=>{
-  dialog.addEventListener('close',()=>{setPaused(wasPaused);resolve(dialog.returnValue==='accept');},{once:true});
+  dialog.addEventListener('close',()=>{setPaused(wasPaused);resolve(returnChoice?dialog.returnValue:dialog.returnValue==='accept');},{once:true});
   dialog.showModal();
  });
 }
 document.getElementById('mission-confirm').addEventListener('keydown',event=>event.stopPropagation());
+
+async function askMissionMenu(){
+ const save=document.getElementById('mission-confirm-save');save.classList.remove('hidden');
+ try{return await askGameConfirmation('작전을 어떻게 할까요?', '저장하면 현재 장비를 유지하고, 다음에 같은 스테이지를 처음부터 이어합니다. 종료하면 현재 점수를 랭킹에 등록할 수 있어요.', '종료하기', true);}
+ finally{save.classList.add('hidden');}
+}
