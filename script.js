@@ -1331,7 +1331,7 @@ function closeFirstFlightGuide() {
 document.getElementById('tutorial-start-btn').addEventListener('click',closeFirstFlightGuide);
 document.getElementById('tutorial-skip-btn').addEventListener('click',closeFirstFlightGuide);
 guide.addEventListener('keydown',e=>{
-    if(e.key==='Escape') closeFirstFlightGuide();
+    if(e.key==='Escape') { e.stopPropagation(); closeFirstFlightGuide(); }
     if(e.key==='Tab') { e.preventDefault(); const a=document.getElementById('tutorial-start-btn'),b=document.getElementById('tutorial-skip-btn'); (document.activeElement===a?b:a).focus(); }
 });
 function renderPlanePreviews() {
