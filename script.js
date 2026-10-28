@@ -30,8 +30,13 @@ const submitRankBtn = document.getElementById('submit-rank-btn');
 const rankStatusEl = document.getElementById('rank-status');
 const rankingListEl = document.getElementById('ranking-list');
 
-// Google Apps Script 웹 앱을 배포한 뒤 이 주소를 /exec URL로 바꾸세요.
-const RANKING_API_URL = 'https://script.google.com/macros/s/AKfycbwNHC8b70SXTPx9qM7xEFHgkib94re0xhVQ75QCKmQBVphYbYpNT4VaL2KUSaIB-tUpAA/exec';
+// Public browser key; database access is restricted to the ranking functions.
+const RANKING_URL = 'https://lubrwnbluclmpoxnkzul.supabase.co/rest/v1/rpc/';
+const RANKING_KEY = 'sb_publishable_iFW2FjdPFeMHgvi5-RfB2A_qHdQgX8g';
+let rankingResult = null;
+let rankingSubmitted = false;
+let rankingSubmitting = false;
+let rankingLoadVersion = 0;
 
 const stageBanner = document.getElementById('stage-banner');
 const bannerTitle = document.getElementById('banner-title');
@@ -327,6 +332,11 @@ function createParticles(x, y, color, count = 12) {
 }
 
 function startGame() {
+    rankingResult = null;
+    rankingSubmitted = false;
+    if (submitRankBtn) submitRankBtn.disabled = false;
+    rankingLoadVersion++;
+
     initAudio();
     clearTimeout(stageBannerTimeout);
     clearTimeout(pickupNoticeTimeout);
@@ -1116,37 +1126,33 @@ function updateGame() {
     }
 }
 
-function rankingApiConfigured() {
-    return RANKING_API_URL.startsWith('https://script.google.com/macros/s/') && RANKING_API_URL.endsWith('/exec');
+async function rankingRpc(name, payload = {}) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 12000);
+    try {
+        const response = await fetch(RANKING_URL + name, {
+            method: 'POST',
+            headers: { apikey: RANKING_KEY, 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload), signal: controller.signal
+        });
+        if (!response.ok) throw new Error('랭킹 서버 요청에 실패했습니다. 잠시 후 다시 시도하세요.');
+        return await response.json();
+    } catch (error) {
+        if (error.name === 'AbortError') throw new Error('랭킹 서버 응답 시간이 초과되었습니다. 다시 시도하세요.');
+        if (error instanceof TypeError) throw new Error('랭킹 서버에 연결하지 못했습니다. 인터넷 연결을 확인하세요.');
+        throw error;
+    } finally { clearTimeout(timer); }
 }
 
-function requestRankingJsonp(action, params = {}, callbackName) {
-    return new Promise((resolve, reject) => {
-        if (!rankingApiConfigured()) {
-            reject(new Error('Google Apps Script URL을 아직 설정하지 않았습니다.'));
-            return;
-        }
-        const callbackKey = callbackName;
-        const query = new URLSearchParams({ action, callback: callbackKey, ...params, _: String(Date.now()) });
-        const script = document.createElement('script');
-        const cleanup = () => {
-            script.remove();
-            clearTimeout(timeout);
-            try { delete window[callbackKey]; } catch (e) { window[callbackKey] = undefined; }
-        };
-        const timeout = setTimeout(() => {
-            cleanup();
-            reject(new Error('랭킹 서버 응답 시간이 초과되었습니다.'));
-        }, 12000);
-        window[callbackKey] = data => {
-            cleanup();
-            if (data && data.ok) resolve(data);
-            else reject(new Error((data && data.error) || '랭킹 요청에 실패했습니다.'));
-        };
-        script.onerror = () => { cleanup(); reject(new Error('랭킹 서버에 연결할 수 없습니다.')); };
-        script.src = `${RANKING_API_URL}?${query.toString()}`;
-        document.head.appendChild(script);
-    });
+function captureRankingResult() {
+    if (rankingResult) return;
+    rankingResult = {
+        p_id: crypto.randomUUID(),
+        p_score: Math.max(0, Math.floor(score)),
+        p_difficulty: selectedDifficulty, p_plane: selectedPlaneType,
+        p_stage: Math.max(1, Math.floor(currentStage)),
+        p_kills: Math.max(0, Math.floor(kills))
+    };
 }
 
 function renderRanking(rows) {
@@ -1187,53 +1193,43 @@ function renderRanking(rows) {
 
 async function loadOnlineRanking() {
     if (!rankStatusEl) return;
-    if (!rankingApiConfigured()) {
-        rankStatusEl.textContent = '설정 필요: Code.gs 배포 후 script.js의 RANKING_API_URL에 웹 앱 주소를 넣으세요.';
-        if (rankingListEl) rankingListEl.innerHTML = '<li>Google Sheets 연결 후 온라인 랭킹이 표시됩니다.</li>';
-        return;
-    }
+    const version = ++rankingLoadVersion;
     rankStatusEl.textContent = '온라인 랭킹을 불러오는 중...';
     try {
-        const data = await requestRankingJsonp('list', {}, 'skyRaidersRankingCallback');
-        renderRanking(data.rows || []);
-        rankStatusEl.textContent = '온라인 랭킹 연결됨';
+        const rows = await rankingRpc('new1984_leaderboard');
+        if (version !== rankingLoadVersion) return;
+        renderRanking(rows);
+        rankStatusEl.textContent = rankingSubmitted ? '점수가 등록되었습니다!' : '온라인 랭킹 연결됨';
     } catch (error) {
-        rankStatusEl.textContent = error.message;
+        if (version !== rankingLoadVersion) return;
+        rankStatusEl.textContent = rankingSubmitted ? '점수는 등록되었습니다. 랭킹 목록을 불러오지 못했습니다.' : error.message;
         if (rankingListEl) rankingListEl.innerHTML = '<li>랭킹을 불러오지 못했습니다. 잠시 후 다시 시도하세요.</li>';
     }
 }
 
 async function submitOnlineScore() {
-    if (!rankNicknameEl || !submitRankBtn || !rankStatusEl) return;
-    const nickname = rankNicknameEl.value.trim().replace(/[<>]/g, '').slice(0, 12);
+    if (!rankNicknameEl || !submitRankBtn || !rankStatusEl || !rankingResult || rankingSubmitted || rankingSubmitting) return;
+    const nickname = rankNicknameEl.value.trim().replace(/[<>\x00-\x1f\x7f]/g, '').slice(0, 12);
     if (!nickname) {
         rankStatusEl.textContent = '먼저 닉네임을 입력해 주세요.';
         rankNicknameEl.focus();
         return;
     }
-    if (!rankingApiConfigured()) {
-        rankStatusEl.textContent = '아직 연결되지 않았어요. Code.gs를 배포하고 RANKING_API_URL을 설정해 주세요.';
-        return;
-    }
     try { localStorage.setItem('skyRaiders84Nickname', nickname); } catch (e) {}
+    const result = rankingResult;
+    rankingSubmitting = true;
     submitRankBtn.disabled = true;
     rankStatusEl.textContent = '점수를 등록하는 중...';
     try {
-        await requestRankingJsonp('submit', {
-            nickname,
-            score: String(Math.max(0, Math.floor(score))),
-            difficulty: selectedDifficulty,
-            plane: selectedPlaneType,
-            stage: String(Math.max(1, Math.floor(currentStage || 1))),
-            kills: String(Math.max(0, Math.floor(kills || 0)))
-        }, 'skyRaidersSubmitCallback');
-        rankStatusEl.textContent = '점수가 등록되었습니다!';
+        await rankingRpc('new1984_submit_score', { ...result, p_nickname: nickname });
+        if (rankingResult !== result) return;
+        rankingSubmitted = true;
         await loadOnlineRanking();
-        rankStatusEl.textContent = '점수가 등록되었습니다!';
     } catch (error) {
-        rankStatusEl.textContent = error.message;
+        if (rankingResult === result) rankStatusEl.textContent = error.message;
     } finally {
-        submitRankBtn.disabled = false;
+        rankingSubmitting = false;
+        submitRankBtn.disabled = rankingSubmitted;
     }
 }
 
@@ -1260,6 +1256,7 @@ function endMissionEarly() {
     finalScoreEl.textContent = score.toLocaleString('ko-KR');
     if (finalComboEl) finalComboEl.textContent = bestCombo;
     if (finalKillsEl) finalKillsEl.textContent = kills;
+    captureRankingResult();
     saveBestScore();
     if (rankStatusEl) rankStatusEl.textContent = '작전이 종료되었습니다. 닉네임을 입력해 현재 점수를 등록할 수 있어요.';
     loadOnlineRanking();
@@ -1278,6 +1275,7 @@ function gameOver() {
     finalScoreEl.textContent = score.toLocaleString('ko-KR');
     if (finalComboEl) finalComboEl.textContent = bestCombo;
     if (finalKillsEl) finalKillsEl.textContent = kills;
+    captureRankingResult();
     saveBestScore();
     loadOnlineRanking();
 }
@@ -1293,6 +1291,7 @@ function gameClear() {
     finalScoreEl.textContent = score.toLocaleString('ko-KR');
     if (finalComboEl) finalComboEl.textContent = bestCombo;
     if (finalKillsEl) finalKillsEl.textContent = kills;
+    captureRankingResult();
     saveBestScore();
     loadOnlineRanking();
 }
