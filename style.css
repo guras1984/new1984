@@ -344,3 +344,30 @@ body{background:radial-gradient(ellipse at 50% 10%,#fbfbf4,#e1edf1);color:#182d4
 #cloud-saved-state{padding:10px 12px;border-radius:9px;background:#edf2f5;color:#486170}#cloud-saved-state[data-state="saved"]{background:#e7f4ed;color:#256346}#cloud-saved-state[data-state="changed"]{background:#fff4dc;color:#774d00}
 
 #mission-confirm{position:fixed;inset:0;margin:auto;width:min(360px,calc(100vw - 36px));max-height:calc(100dvh - 40px);box-sizing:border-box;padding:28px 22px;border:1px solid #d7b87580;border-radius:22px;background:linear-gradient(150deg,#fcfcf5,#e8f1f4);color:#182d40;box-shadow:0 24px 80px #06152566;text-align:center}#mission-confirm::backdrop{background:#10243799;backdrop-filter:blur(7px)}#mission-confirm .confirm-mark{display:block;font-size:26px;color:#b18a36;margin-bottom:12px}#mission-confirm h2{font-size:21px;margin:0 0 12px}#mission-confirm p{font-size:14px;line-height:1.7;margin:0 0 24px;color:#526a7a}#mission-confirm .confirm-actions{display:flex;gap:10px}#mission-confirm button{flex:1;margin:0;padding:12px 8px;font:inherit;font-size:13px}#mission-confirm button:focus-visible{outline:3px solid #4585a9;outline-offset:3px}
+
+/* Unified flight deck: ivory surfaces, navy typography and restrained brass. */
+body{font-family:'Noto Sans KR',system-ui,sans-serif;background:radial-gradient(ellipse at 50% 0,#faf8f0,#dee7ed);color:#20384b}
+#game-wrapper{border-radius:24px;border-color:#cbd6dc;box-shadow:0 24px 72px #233a4d1c}
+#start-screen{background:radial-gradient(ellipse at 50% 28%,#fffef8,#eef3f4 64%,#e5edf0)}
+.start-heading h1{letter-spacing:-.045em}.start-heading>p:last-child{line-height:1.7;color:#637885}
+#preview-plane{filter:drop-shadow(0 9px 9px #28445a18)}
+.plane-card{border-radius:12px;background:#ffffff70;border:1px solid #d6e0e5;box-shadow:none;transition:background .18s,border-color .18s,transform .18s;min-width:0}
+.plane-card h3{font-family:inherit;font-weight:600;font-size:11px;color:#354d5e}
+.plane-card:before{display:none}.plane-card.selected{border-color:var(--aircraft-color,#286bce);background:#fff;box-shadow:0 3px 12px #233b5010}
+.plane-card.selected:after{content:'선택';font:600 8px 'Noto Sans KR',sans-serif;letter-spacing:0;color:var(--aircraft-color);top:3px;right:5px}
+.plane-card:hover{border-color:var(--aircraft-color,#286bce)}
+#plane-description{font-size:12px;color:#526979;line-height:1.6}.section-label{letter-spacing:.03em;color:#516879}
+.glow-btn{font-family:inherit;letter-spacing:0;border-radius:12px;background:linear-gradient(160deg,#ddc79a,#c3a369);border:1px solid #b99a62;color:#263848;box-shadow:0 4px 12px #8c70421a;font-weight:700}
+.utility-btn{font-family:inherit;letter-spacing:0;border-radius:10px}.utility-btn span{font-family:inherit;letter-spacing:0}
+button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #548fae;outline-offset:3px}
+#hud{font-family:inherit;font-variant-numeric:tabular-nums;letter-spacing:0;background:linear-gradient(#152d40,#102536)}
+#controls-panel{background:#102536;border-top-color:#2b465b}#controls-panel .utility-btn{background:#ffffff08;border-color:#6d8a9c45}
+#gameover-screen h2,.online-ranking h3,#final-score,.rank-place,.rank-meta,.record-line{font-family:inherit;letter-spacing:0;font-variant-numeric:tabular-nums}
+#gameover-screen h2{font-weight:700}#gameover-screen #final-score{color:#81663c;font-size:30px;font-weight:700}
+.online-ranking{border-radius:16px;border-color:#d1dce2;box-shadow:0 6px 20px #29445508}.ranking-row{border-radius:10px}.rank-submit input{border-radius:10px}
+#shop-overlay{background:linear-gradient(150deg,#142b3bf7,#091a29fa)}.shop-panel h2{font-size:24px;letter-spacing:-.03em}.shop-item{background:#193447;border-color:#385365;border-radius:16px}.shop-item h3{font-size:14px}.shop-item p{line-height:1.7}.shop-item button{border-radius:10px}
+.cloud-account{border-color:#ccdce4;border-radius:16px;background:#f5f8f8}.cloud-account input{border-color:#c5d4dc}.cloud-account .cloud-warning{font-size:11px;line-height:1.7}
+#stage-banner,.pause-card,.tutorial-card{border-radius:20px}#banner-title,.pause-card h2{font-family:inherit;letter-spacing:0}
+#mission-confirm .confirm-actions{flex-wrap:wrap}#mission-confirm button{min-width:85px;min-height:44px}
+@media(max-width:380px){#game-wrapper{border-radius:16px}#start-screen{padding-left:16px;padding-right:16px}.plane-card h3{font-size:10px}.start-nav{column-gap:8px}#mission-confirm{padding:24px 16px}}
+@media(prefers-reduced-motion:reduce){button,.plane-card{transition:none!important}.glow-btn:hover{transform:none}}

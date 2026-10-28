@@ -311,14 +311,13 @@ function getPlaneIcon(type) {
 }
 
 function getPlaneColor(type) {
-    switch(type) {
-        case 'standard': return { base: '#9daeb8', high: '#f0f3e9', accent: '#d7b875' };
-        case 'jet': return { base: '#b75a50', high: '#f4b4a4', accent: '#f2d7a0' };
-        case 'propeller': return { base: '#3d788b', high: '#a8e4ed', accent: '#d7b875' };
-        case 'cruiser': return { base: '#716e9d', high: '#d0c9f5', accent: '#8cecff' };
-        case 'copter': return { base: '#4c8574', high: '#b3e0c9', accent: '#d7b875' };
-        default: return { base: '#9daeb8', high: '#f0f3e9', accent: '#d7b875' };
-    }
+ const palettes={
+ standard:{base:'#286bce',high:'#c0e1ff',accent:'#75cfff'},
+ jet:{base:'#c64145',high:'#ffd0c1',accent:'#ffac67'},
+ propeller:{base:'#a87a17',high:'#fff0ae',accent:'#ffe171'},
+ cruiser:{base:'#7950ba',high:'#e2d0ff',accent:'#c6a0ff'},
+ copter:{base:'#227e64',high:'#b5f0d0',accent:'#6de5b4'}
+ };return palettes[type]||palettes.standard;
 }
 
 // 화려한 파티클 생성 함수
@@ -646,8 +645,7 @@ function draw3DShape(ctx, x, y, radius, baseColor, highlightColor, icon) {
 // 1984-inspired vector aircraft: layered fuselage, swept wings, cockpit and engine glow.
 function paintAircraft(c,x,y,scale,colors,variant,flame=true) {
  c.save(); c.translate(x,y); c.scale(scale,scale);
- const palette={standard:'#253e57',jet:'#446c85',propeller:'#526d65',cruiser:'#4f506d',copter:'#80704c'};
- const base=palette[variant]||palette.standard;
+ const base=colors.base, highlight=colors.high, accent=colors.accent;
  const wing=variant==='jet'?19:variant==='propeller'?31:variant==='cruiser'?29:variant==='copter'?26:25;
  function shape(points,fill,stroke='#b2c4cf') { c.beginPath();points.forEach((p,i)=>i?c.lineTo(...p):c.moveTo(...p));c.closePath();c.fillStyle=fill;c.fill();c.strokeStyle=stroke;c.lineWidth=.8;c.stroke(); }
  c.shadowColor='#0c223e66';c.shadowBlur=3;c.shadowOffsetY=2;
@@ -655,12 +653,14 @@ function paintAircraft(c,x,y,scale,colors,variant,flame=true) {
  const top=variant==='cruiser'?-14:-8;
  shape([[0,-31],[7,top],[wing,13],[wing-3,18],[8,10],[6,20],[13,28],[3,25],[0,29],[-3,25],[-13,28],[-6,20],[-8,10],[-wing+3,18],[-wing,13],[-7,top]],base);
  c.shadowBlur=0;c.shadowOffsetY=0;
+ c.strokeStyle=accent;c.lineWidth=2;for(const side of [-1,1]){c.beginPath();c.moveTo(side*12,5);c.lineTo(side*(wing-5),12);c.stroke();}
+ if(variant==='propeller'||variant==='copter'){c.strokeStyle=highlight;c.lineWidth=1.4;c.beginPath();c.ellipse(0,variant==='copter'?0:-28,variant==='copter'?34:13,3,0,0,Math.PI*2);c.stroke();}
  for(const sign of [-1,1]){
- shape([[sign*5,-3],[sign*(wing-3),13],[sign*9,8]],'#9badb7','#dfe8ed');
+ shape([[sign*5,-3],[sign*(wing-3),13],[sign*9,8]],highlight,accent);
  shape([[sign*4,12],[sign*11,26],[sign*3,22]],base,'#cfb781');
  c.fillStyle='#1b2e3c';c.fillRect(sign*6-2,13,4,10);
  }
- const metal=c.createLinearGradient(-5,0,5,0);metal.addColorStop(0,'#536c7c');metal.addColorStop(.5,'#edf0e9');metal.addColorStop(1,'#6d8796');
+ const metal=c.createLinearGradient(-5,0,5,0);metal.addColorStop(0,base);metal.addColorStop(.5,highlight);metal.addColorStop(1,base);
  shape([[0,-33],[4,-16],[4,17],[0,26],[-4,17],[-4,-16]],metal);
  shape([[0,-21],[2.5,-13],[2,-5],[-2,-5],[-2.5,-13]],'#223c54','#9dc7df');
  c.strokeStyle='#cfb781';c.lineWidth=1;c.beginPath();c.moveTo(0,-28);c.lineTo(0,-23);c.moveTo(0,1);c.lineTo(0,19);c.stroke();
@@ -1101,7 +1101,7 @@ function updateGame() {
     drawCosmetics(ctx, player.x, player.y, 1, frameCount);
     let pColor = getPlaneColor(selectedPlaneType);
     if (hitCooldown === 0 || Math.floor(hitCooldown / 5) % 2 === 0) drawAircraft(player.x, player.y, 1.0, pColor, false, selectedPlaneType);
-    if (combo >= 3 && comboTimer > 0) { ctx.save(); ctx.textAlign='center'; ctx.font='bold 13px Orbitron, sans-serif'; ctx.fillStyle='#f1dca8'; ctx.shadowColor='#d7b875'; ctx.shadowBlur=10; ctx.fillText(`${combo} HIT COMBO`, player.x, player.y + 42); ctx.restore(); }
+    if (combo >= 3 && comboTimer > 0) { ctx.save(); ctx.textAlign='center'; ctx.font='bold 13px Orbitron, sans-serif'; ctx.fillStyle='#f1dca8'; ctx.shadowColor='#d7b875'; ctx.shadowBlur=10; ctx.fillText(`${combo} 연속 격추`, player.x, player.y + 42); ctx.restore(); }
 
     if (player.shield) {
         ctx.strokeStyle = '#8cecff';
@@ -1109,7 +1109,7 @@ function updateGame() {
         ctx.beginPath();
         ctx.arc(player.x, player.y, 31 + Math.sin(Date.now()/100)*2, 0, Math.PI * 2);
         ctx.stroke();
-        ctx.save(); ctx.fillStyle = '#b9fbff'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(`SHIELD ${shieldHits}`, player.x, player.y + 43); ctx.restore();
+        ctx.save(); ctx.fillStyle = '#b9fbff'; ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(`방어막 ${shieldHits}`, player.x, player.y + 43); ctx.restore();
     }
 
     if (bombEffectTimer > 0) {
@@ -1297,7 +1297,7 @@ function gameClear() {
     clearInterval(gameInterval);
     gameScreen.classList.add('hidden');
     gameOverScreen.classList.remove('hidden');
-    gameOverTitle.textContent = "🏆 100스테이지 디럭스 클리어 성공! 🏆";
+    gameOverTitle.textContent = "100단계 작전 완료";
     gameOverTitle.style.color = "#10b981";
     finalScoreEl.textContent = score.toLocaleString('ko-KR');
     if (finalComboEl) finalComboEl.textContent = bestCombo;
@@ -1379,6 +1379,7 @@ function renderPlanePreviews() {
     const descriptions = {standard:'요격기 · 속도와 화력의 균형',jet:'고속기 · 빠른 이동과 집중 사격',propeller:'건십 · 안정적인 연속 사격',cruiser:'스텔스 · 넓게 퍼지는 확산 공격',copter:'방어기 · 방어막 2회로 생존 강화'};
     document.getElementById('plane-description').textContent = descriptions[selectedPlaneType];
     document.querySelectorAll('.plane-card').forEach(card=>{
+        card.style.setProperty('--aircraft-color',getPlaneColor(card.dataset.plane).base);
         const preview=card.querySelector('canvas'), pctx=preview.getContext('2d');
         pctx.clearRect(0,0,72,72); paintAircraft(pctx,36,35,.88,getPlaneColor(card.dataset.plane),card.dataset.plane,false);
     });
